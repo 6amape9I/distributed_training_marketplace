@@ -21,3 +21,5 @@ Use scoped commit messages such as `feat(contracts): add job settlement flow` or
 
 ## Agent-Specific Instructions
 Read `docs/codex/AGENTS-CODEX-ADDENDUM.md` before structural changes. Preserve the on-chain/off-chain boundary and keep ML execution logic out of smart contracts.
+
+`docs/` is the canonical documentation tree. Do not add duplicate copies of Codex guidance at the repository root.

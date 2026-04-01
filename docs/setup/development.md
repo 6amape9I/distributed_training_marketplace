@@ -1,5 +1,7 @@
 # Development Setup
 
+All commands below are written from the repository root unless a section says otherwise.
+
 ## Prerequisites
 - Ubuntu-compatible shell environment
 - Python 3.12
@@ -27,3 +29,4 @@ make python-test
 - Stage 1 verifies the contract-local flow first.
 - Off-chain services are intentionally placeholders; they are not yet wired into a runnable marketplace demo.
 - Root environment defaults live in `.env.example`, while service-specific examples live under `infra/env/`.
+- The canonical Codex/project guidance lives in `docs/codex/`.

@@ -27,4 +27,21 @@ make contracts-test
 make python-test
 ```
 
-For the manual contract smoke path, see `docs/setup/development.md` and `docs/setup/local-demo.md`.
+## Manual local deploy
+Run these commands from the repository root:
+
+```bash
+anvil
+```
+
+In another shell:
+
+```bash
+cd contracts
+forge script script/DeployLocal.s.sol:DeployLocalScript \
+  --rpc-url http://127.0.0.1:8545 \
+  --broadcast \
+  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+```
+
+The canonical project documentation lives under `docs/`. Start with `docs/setup/development.md` and `docs/setup/local-demo.md`.
