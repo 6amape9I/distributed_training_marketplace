@@ -1006,3 +1006,4 @@ tmp/
 /contracts/lib/openzeppelin-contracts/SECURITY.md
 /contracts/lib/openzeppelin-contracts/slither.config.json
 /contracts/lib/openzeppelin-contracts/solhint.config.js
+/contracts/lib/
