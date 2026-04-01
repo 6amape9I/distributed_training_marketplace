@@ -4,6 +4,7 @@ from .evaluation_task_repository import EvaluationTaskRepository
 from .job_event_repository import JobEventRepository
 from .job_repository import JobRepository
 from .node_repository import NodeRepository
+from .round_repository import RoundRepository
 from .sync_state_repository import SyncStateRepository
 from .training_task_repository import TrainingTaskRepository
 
@@ -14,6 +15,7 @@ __all__ = [
     "JobEventRepository",
     "JobRepository",
     "NodeRepository",
+    "RoundRepository",
     "SyncStateRepository",
     "TrainingTaskRepository",
 ]

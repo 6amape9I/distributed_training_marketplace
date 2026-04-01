@@ -13,6 +13,7 @@ from orchestrator.app.domain.entities import (
     Job,
     JobEventRecord,
     Node,
+    Round,
     TrainingTask,
 )
 from orchestrator.app.domain.enums import (
@@ -22,6 +23,7 @@ from orchestrator.app.domain.enums import (
     NodeStatus,
     OffchainJobStatus,
     OnchainJobStatus,
+    RoundStatus,
     TrainingTaskStatus,
     TrainingTaskType,
 )
@@ -33,6 +35,7 @@ from orchestrator.app.infrastructure.db.models import (
     JobEventModel,
     JobModel,
     NodeModel,
+    RoundModel,
     TrainingTaskModel,
 )
 
@@ -85,6 +88,7 @@ def _task_to_entity(model: TrainingTaskModel) -> TrainingTask:
     return TrainingTask(
         task_id=model.task_id,
         job_id=model.job_id,
+        round_id=model.round_id,
         trainer_node_id=model.trainer_node_id,
         task_type=TrainingTaskType(model.task_type),
         status=TrainingTaskStatus(model.status),
@@ -123,6 +127,7 @@ def _evaluation_task_to_entity(model: EvaluationTaskModel) -> EvaluationTask:
     return EvaluationTask(
         evaluation_task_id=model.evaluation_task_id,
         job_id=model.job_id,
+        round_id=model.round_id,
         source_training_task_id=model.source_training_task_id,
         evaluator_node_id=model.evaluator_node_id,
         status=EvaluationTaskStatus(model.status),
@@ -144,6 +149,7 @@ def _evaluation_report_to_entity(model: EvaluationReportModel) -> EvaluationRepo
         report_id=model.report_id,
         evaluation_task_id=model.evaluation_task_id,
         job_id=model.job_id,
+        round_id=model.round_id,
         source_training_task_id=model.source_training_task_id,
         evaluator_node_id=model.evaluator_node_id,
         metrics_json=model.metrics_json,
@@ -151,6 +157,23 @@ def _evaluation_report_to_entity(model: EvaluationReportModel) -> EvaluationRepo
         acceptance_decision=model.acceptance_decision,
         target_model_digest=model.target_model_digest,
         created_at=model.created_at,
+    )
+
+
+def _round_to_entity(model: RoundModel) -> Round:
+    return Round(
+        round_id=model.round_id,
+        job_id=model.job_id,
+        protocol_name=model.protocol_name,
+        round_index=model.round_index,
+        status=RoundStatus(model.status),
+        base_model_artifact_uri=model.base_model_artifact_uri,
+        aggregated_model_artifact_uri=model.aggregated_model_artifact_uri,
+        aggregated_model_artifact_hash=model.aggregated_model_artifact_hash,
+        evaluation_report_id=model.evaluation_report_id,
+        failure_reason=model.failure_reason,
+        created_at=model.created_at,
+        updated_at=model.updated_at,
     )
 
 
@@ -285,6 +308,10 @@ class SqlAlchemyTrainingTaskRepository:
         models = self.session.query(TrainingTaskModel).filter(TrainingTaskModel.job_id == job_id).order_by(TrainingTaskModel.created_at, TrainingTaskModel.task_id).all()
         return [_task_to_entity(model) for model in models]
 
+    def list_by_round(self, round_id: str) -> Sequence[TrainingTask]:
+        models = self.session.query(TrainingTaskModel).filter(TrainingTaskModel.round_id == round_id).order_by(TrainingTaskModel.created_at, TrainingTaskModel.task_id).all()
+        return [_task_to_entity(model) for model in models]
+
     def list_by_status(self, status: TrainingTaskStatus) -> Sequence[TrainingTask]:
         models = self.session.query(TrainingTaskModel).filter(TrainingTaskModel.status == status.value).order_by(TrainingTaskModel.created_at, TrainingTaskModel.task_id).all()
         return [_task_to_entity(model) for model in models]
@@ -299,6 +326,7 @@ class SqlAlchemyTrainingTaskRepository:
             model = TrainingTaskModel(task_id=task.task_id)
             self.session.add(model)
         model.job_id = task.job_id
+        model.round_id = task.round_id
         model.trainer_node_id = task.trainer_node_id
         model.task_type = task.task_type.value
         model.status = task.status.value
@@ -365,6 +393,10 @@ class SqlAlchemyEvaluationTaskRepository:
         models = self.session.query(EvaluationTaskModel).filter(EvaluationTaskModel.job_id == job_id).order_by(EvaluationTaskModel.created_at, EvaluationTaskModel.evaluation_task_id).all()
         return [_evaluation_task_to_entity(model) for model in models]
 
+    def list_by_round(self, round_id: str) -> Sequence[EvaluationTask]:
+        models = self.session.query(EvaluationTaskModel).filter(EvaluationTaskModel.round_id == round_id).order_by(EvaluationTaskModel.created_at, EvaluationTaskModel.evaluation_task_id).all()
+        return [_evaluation_task_to_entity(model) for model in models]
+
     def list_by_status(self, status: EvaluationTaskStatus) -> Sequence[EvaluationTask]:
         models = self.session.query(EvaluationTaskModel).filter(EvaluationTaskModel.status == status.value).order_by(EvaluationTaskModel.created_at, EvaluationTaskModel.evaluation_task_id).all()
         return [_evaluation_task_to_entity(model) for model in models]
@@ -379,6 +411,7 @@ class SqlAlchemyEvaluationTaskRepository:
             model = EvaluationTaskModel(evaluation_task_id=task.evaluation_task_id)
             self.session.add(model)
         model.job_id = task.job_id
+        model.round_id = task.round_id
         model.source_training_task_id = task.source_training_task_id
         model.evaluator_node_id = task.evaluator_node_id
         model.status = task.status.value
@@ -475,6 +508,10 @@ class SqlAlchemyEvaluationReportRepository:
         models = self.session.query(EvaluationReportModel).filter(EvaluationReportModel.job_id == job_id).order_by(EvaluationReportModel.created_at, EvaluationReportModel.report_id).all()
         return [_evaluation_report_to_entity(model) for model in models]
 
+    def list_by_round(self, round_id: str) -> Sequence[EvaluationReport]:
+        models = self.session.query(EvaluationReportModel).filter(EvaluationReportModel.round_id == round_id).order_by(EvaluationReportModel.created_at, EvaluationReportModel.report_id).all()
+        return [_evaluation_report_to_entity(model) for model in models]
+
     def list_by_evaluation_task(self, evaluation_task_id: str) -> Sequence[EvaluationReport]:
         models = self.session.query(EvaluationReportModel).filter(EvaluationReportModel.evaluation_task_id == evaluation_task_id).order_by(EvaluationReportModel.created_at, EvaluationReportModel.report_id).all()
         return [_evaluation_report_to_entity(model) for model in models]
@@ -486,6 +523,7 @@ class SqlAlchemyEvaluationReportRepository:
             self.session.add(model)
         model.evaluation_task_id = report.evaluation_task_id
         model.job_id = report.job_id
+        model.round_id = report.round_id
         model.source_training_task_id = report.source_training_task_id
         model.evaluator_node_id = report.evaluator_node_id
         model.metrics_json = report.metrics_json
@@ -494,3 +532,57 @@ class SqlAlchemyEvaluationReportRepository:
         model.target_model_digest = report.target_model_digest
         self.session.flush()
         return _evaluation_report_to_entity(model)
+
+
+class SqlAlchemyRoundRepository:
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def get(self, round_id: str) -> Round | None:
+        model = self.session.get(RoundModel, round_id)
+        return _round_to_entity(model) if model else None
+
+    def list(self) -> Sequence[Round]:
+        models = self.session.query(RoundModel).order_by(RoundModel.created_at, RoundModel.round_id).all()
+        return [_round_to_entity(model) for model in models]
+
+    def list_by_job(self, job_id: int) -> Sequence[Round]:
+        models = self.session.query(RoundModel).filter(RoundModel.job_id == job_id).order_by(RoundModel.round_index, RoundModel.round_id).all()
+        return [_round_to_entity(model) for model in models]
+
+    def list_by_status(self, status: RoundStatus) -> Sequence[Round]:
+        models = self.session.query(RoundModel).filter(RoundModel.status == status.value).order_by(RoundModel.created_at, RoundModel.round_id).all()
+        return [_round_to_entity(model) for model in models]
+
+    def get_active_for_job(self, job_id: int) -> Round | None:
+        active_statuses = {
+            RoundStatus.PENDING.value,
+            RoundStatus.SEEDED.value,
+            RoundStatus.TRAINING.value,
+            RoundStatus.AGGREGATING.value,
+            RoundStatus.EVALUATING.value,
+        }
+        model = (
+            self.session.query(RoundModel)
+            .filter(RoundModel.job_id == job_id, RoundModel.status.in_(active_statuses))
+            .order_by(RoundModel.round_index.desc(), RoundModel.round_id.desc())
+            .first()
+        )
+        return _round_to_entity(model) if model else None
+
+    def upsert(self, round_record: Round) -> Round:
+        model = self.session.get(RoundModel, round_record.round_id)
+        if model is None:
+            model = RoundModel(round_id=round_record.round_id)
+            self.session.add(model)
+        model.job_id = round_record.job_id
+        model.protocol_name = round_record.protocol_name
+        model.round_index = round_record.round_index
+        model.status = round_record.status.value
+        model.base_model_artifact_uri = round_record.base_model_artifact_uri
+        model.aggregated_model_artifact_uri = round_record.aggregated_model_artifact_uri
+        model.aggregated_model_artifact_hash = round_record.aggregated_model_artifact_hash
+        model.evaluation_report_id = round_record.evaluation_report_id
+        model.failure_reason = round_record.failure_reason
+        self.session.flush()
+        return _round_to_entity(model)

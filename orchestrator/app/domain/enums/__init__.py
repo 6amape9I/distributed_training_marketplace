@@ -4,6 +4,7 @@ from .node_role import NodeRole
 from .node_status import NodeStatus
 from .offchain_job_status import OffchainJobStatus
 from .onchain_job_status import OnchainJobStatus
+from .round_status import RoundStatus
 from .training_task_status import TrainingTaskStatus
 from .training_task_type import TrainingTaskType
 
@@ -14,6 +15,7 @@ __all__ = [
     "NodeStatus",
     "OffchainJobStatus",
     "OnchainJobStatus",
+    "RoundStatus",
     "TrainingTaskStatus",
     "TrainingTaskType",
 ]

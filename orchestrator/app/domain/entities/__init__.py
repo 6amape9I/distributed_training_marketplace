@@ -5,6 +5,7 @@ from .evaluation_task import EvaluationTask
 from .job import Job
 from .job_event_record import JobEventRecord
 from .node import Node
+from .round import Round
 from .training_task import TrainingTask
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     "Job",
     "JobEventRecord",
     "Node",
+    "Round",
     "TrainingTask",
 ]

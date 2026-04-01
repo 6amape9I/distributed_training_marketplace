@@ -90,6 +90,7 @@ class EvaluationDispatchService:
                     EvaluationTask(
                         evaluation_task_id=f"evaluation-task-{uuid4().hex}",
                         job_id=job_id,
+                        round_id=None,
                         source_training_task_id=task.task_id,
                         evaluator_node_id=None,
                         status=EvaluationTaskStatus.PENDING,

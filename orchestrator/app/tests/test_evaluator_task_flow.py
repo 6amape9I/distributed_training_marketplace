@@ -47,6 +47,7 @@ def test_seed_claim_complete_evaluation_flow_and_promote_job(app) -> None:
             TrainingTask(
                 task_id="task-1",
                 job_id=10,
+                round_id=None,
                 trainer_node_id="trainer-1",
                 task_type=TrainingTaskType.LOCAL_FIT,
                 status=TrainingTaskStatus.COMPLETED,

@@ -16,6 +16,7 @@ from orchestrator.app.infrastructure.db.repositories import (
     SqlAlchemyJobEventRepository,
     SqlAlchemyJobRepository,
     SqlAlchemyNodeRepository,
+    SqlAlchemyRoundRepository,
     SqlAlchemySyncStateRepository,
     SqlAlchemyTrainingTaskRepository,
 )
@@ -51,6 +52,9 @@ class AppContainer:
 
     def evaluation_task_repository(self, session: Session) -> SqlAlchemyEvaluationTaskRepository:
         return SqlAlchemyEvaluationTaskRepository(session)
+
+    def round_repository(self, session: Session) -> SqlAlchemyRoundRepository:
+        return SqlAlchemyRoundRepository(session)
 
     def artifact_repository(self, session: Session) -> SqlAlchemyArtifactRepository:
         return SqlAlchemyArtifactRepository(session)

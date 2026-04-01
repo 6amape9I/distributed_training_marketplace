@@ -9,6 +9,7 @@ from .evaluation_api import (
 )
 from .job_api import JobDetailResponse, JobSummaryResponse, SyncResponse
 from .node_api import NodeHeartbeatRequest, NodeRegistrationRequest, NodeResponse
+from .round_api import ProtocolRunResponse, RoundReconcileResponse, RoundResponse
 from .status_api import HealthResponse, ReconcileResponse, StatusResponse
 from .task_api import (
     TaskClaimRequest,
@@ -35,7 +36,10 @@ __all__ = [
     "NodeHeartbeatRequest",
     "NodeRegistrationRequest",
     "NodeResponse",
+    "ProtocolRunResponse",
     "ReconcileResponse",
+    "RoundReconcileResponse",
+    "RoundResponse",
     "StatusResponse",
     "SyncResponse",
     "TaskClaimRequest",

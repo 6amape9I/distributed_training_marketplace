@@ -1,0 +1,19 @@
+from collections.abc import Sequence
+from typing import Protocol
+
+from orchestrator.app.domain.entities import Round
+from orchestrator.app.domain.enums import RoundStatus
+
+
+class RoundRepository(Protocol):
+    def get(self, round_id: str) -> Round | None: ...
+
+    def list(self) -> Sequence[Round]: ...
+
+    def list_by_job(self, job_id: int) -> Sequence[Round]: ...
+
+    def list_by_status(self, status: RoundStatus) -> Sequence[Round]: ...
+
+    def get_active_for_job(self, job_id: int) -> Round | None: ...
+
+    def upsert(self, round_record: Round) -> Round: ...

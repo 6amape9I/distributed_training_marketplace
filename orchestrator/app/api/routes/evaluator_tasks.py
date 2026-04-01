@@ -27,6 +27,7 @@ def _to_response(task: EvaluationTask) -> EvaluationTaskResponse:
     return EvaluationTaskResponse(
         evaluation_task_id=task.evaluation_task_id,
         job_id=task.job_id,
+        round_id=task.round_id,
         source_training_task_id=task.source_training_task_id,
         evaluator_node_id=task.evaluator_node_id,
         status=task.status.value,

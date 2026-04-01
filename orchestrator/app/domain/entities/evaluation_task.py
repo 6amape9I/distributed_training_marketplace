@@ -11,7 +11,8 @@ from orchestrator.app.domain.enums import EvaluationTaskStatus
 class EvaluationTask:
     evaluation_task_id: str
     job_id: int
-    source_training_task_id: str
+    round_id: str | None
+    source_training_task_id: str | None
     evaluator_node_id: str | None
     status: EvaluationTaskStatus
     target_model_artifact_uri: str

@@ -1,19 +1,21 @@
 # Orchestrator Core
 
-Stage 4 extends the orchestrator into the first real training-plus-evaluation control plane.
+Stage 5 extends the orchestrator into the first real plugin-driven training-plus-evaluation control plane.
 
 ## Responsibilities
 - mirror contract events into persistent storage;
 - maintain explicit off-chain job lifecycle state;
-- expose DB-backed API endpoints for jobs, nodes, trainer tasks, evaluator tasks, artifacts, and status;
+- expose DB-backed API endpoints for jobs, rounds, nodes, trainer tasks, evaluator tasks, artifacts, and status;
 - support node registration and heartbeat flows;
-- seed and track trainer and evaluator tasks;
+- seed protocol rounds and track trainer/evaluator tasks;
+- aggregate trainer outputs into a new model artifact;
 - persist artifact and evaluation report metadata;
-- reconcile job state after training and evaluation completion.
+- reconcile round and job state after training, aggregation, and evaluation completion.
 
 ## Guardrails
 - Do not change the Stage 1 contract model unless a real blocker is proven first.
 - Do not pull on-chain attestation writes or settlement execution into this service.
+- Keep FedAvg-like assumptions behind the protocol plugin and aggregation service boundary.
 
 ## Environment variables
 Required:
@@ -42,7 +44,9 @@ PYTHONPATH=. .venv/bin/pytest orchestrator/app/tests trainer_agent/app/tests eva
 - `GET /status`
 - `GET /jobs`
 - `GET /jobs/{job_id}`
+- `GET /jobs/{job_id}/rounds`
 - `POST /jobs/sync`
+- `GET /rounds/{round_id}`
 - `GET /nodes`
 - `GET /nodes/{node_id}`
 - `POST /nodes/register`
@@ -60,5 +64,9 @@ PYTHONPATH=. .venv/bin/pytest orchestrator/app/tests trainer_agent/app/tests eva
 - `POST /artifacts/upload`
 - `GET /artifacts/{artifact_id}`
 - `GET /artifacts/{artifact_id}/content`
+- `POST /internal/protocol-runs/start-for-job/{job_id}`
+- `POST /internal/rounds/{round_id}/reconcile`
+
+Legacy/demo-only endpoints:
 - `POST /internal/tasks/seed-for-job/{job_id}`
 - `POST /internal/evaluations/seed-for-job/{job_id}`

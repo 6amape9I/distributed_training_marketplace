@@ -37,7 +37,8 @@ class EvaluationTaskSeedResponse(BaseModel):
 class EvaluationTaskResponse(BaseModel):
     evaluation_task_id: str
     job_id: int
-    source_training_task_id: str
+    round_id: str | None = None
+    source_training_task_id: str | None = None
     evaluator_node_id: str | None = None
     status: str
     target_model_artifact_uri: str

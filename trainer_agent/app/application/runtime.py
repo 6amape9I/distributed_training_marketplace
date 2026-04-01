@@ -133,7 +133,11 @@ class TrainerRuntime:
                 name=f"{task.task_id}-result.json",
                 payload=artifacts.result_payload,
                 mime_type="application/json",
-                metadata={"trainer_node_id": self.settings.trainer_node_id, "accuracy": artifacts.accuracy},
+                metadata={
+                    "trainer_node_id": self.settings.trainer_node_id,
+                    "accuracy": artifacts.accuracy,
+                    "round_id": task.round_id,
+                },
                 job_id=task.job_id,
                 task_id=task.task_id,
             )
@@ -142,7 +146,11 @@ class TrainerRuntime:
                 name=f"{task.task_id}-report.json",
                 payload=artifacts.report_payload,
                 mime_type="application/json",
-                metadata={"trainer_node_id": self.settings.trainer_node_id, "average_loss": artifacts.average_loss},
+                metadata={
+                    "trainer_node_id": self.settings.trainer_node_id,
+                    "average_loss": artifacts.average_loss,
+                    "round_id": task.round_id,
+                },
                 job_id=task.job_id,
                 task_id=task.task_id,
             )

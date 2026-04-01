@@ -89,6 +89,7 @@ class TaskDispatchService:
             task = TrainingTask(
                 task_id=f"task-{uuid4().hex}",
                 job_id=job_id,
+                round_id=None,
                 trainer_node_id=None,
                 task_type=TrainingTaskType.LOCAL_FIT,
                 status=TrainingTaskStatus.PENDING,

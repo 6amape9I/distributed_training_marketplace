@@ -27,6 +27,7 @@ def _to_response(task: TrainingTask) -> TrainingTaskResponse:
     return TrainingTaskResponse(
         task_id=task.task_id,
         job_id=task.job_id,
+        round_id=task.round_id,
         trainer_node_id=task.trainer_node_id,
         task_type=task.task_type.value,
         status=task.status.value,

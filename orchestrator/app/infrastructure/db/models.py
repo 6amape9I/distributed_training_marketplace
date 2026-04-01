@@ -78,6 +78,7 @@ class TrainingTaskModel(Base):
 
     task_id: Mapped[str] = mapped_column(String(128), primary_key=True)
     job_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    round_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     trainer_node_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     task_type: Mapped[str] = mapped_column(String(32), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
@@ -118,7 +119,8 @@ class EvaluationTaskModel(Base):
 
     evaluation_task_id: Mapped[str] = mapped_column(String(128), primary_key=True)
     job_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    source_training_task_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    round_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    source_training_task_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     evaluator_node_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     target_model_artifact_uri: Mapped[str] = mapped_column(Text, nullable=False)
@@ -141,10 +143,30 @@ class EvaluationReportModel(Base):
     report_id: Mapped[str] = mapped_column(String(128), primary_key=True)
     evaluation_task_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     job_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    source_training_task_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    round_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    source_training_task_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     evaluator_node_id: Mapped[str] = mapped_column(String(128), nullable=False)
     metrics_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     sample_count: Mapped[int] = mapped_column(Integer, nullable=False)
     acceptance_decision: Mapped[bool] = mapped_column(Boolean, nullable=False)
     target_model_digest: Mapped[str] = mapped_column(String(128), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class RoundModel(Base):
+    __tablename__ = "rounds"
+
+    round_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    job_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    protocol_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    round_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    base_model_artifact_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    aggregated_model_artifact_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
+    aggregated_model_artifact_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    evaluation_report_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )

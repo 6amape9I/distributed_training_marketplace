@@ -5,14 +5,20 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from orchestrator.app.api.deps import (
     get_evaluation_dispatch_service,
     get_orchestration_coordinator,
+    get_protocol_run_service,
+    get_round_reconciliation_service,
     get_task_dispatch_service,
 )
 from orchestrator.app.application.dto import (
     EvaluationTaskSeedResponse,
+    ProtocolRunResponse,
     ReconcileResponse,
+    RoundReconcileResponse,
     SyncResponse,
     TaskSeedResponse,
 )
+from orchestrator.app.application.services.protocol_run_service import ProtocolRunService
+from orchestrator.app.application.services.round_reconciliation_service import RoundReconciliationError, RoundReconciliationService
 from orchestrator.app.application.services import (
     EvaluationDispatchError,
     EvaluationDispatchService,
@@ -70,4 +76,37 @@ def seed_evaluation_tasks_for_job(
         job_id=job_id,
         evaluation_task_ids=[task.evaluation_task_id for task in tasks],
         artifact_ids=artifact_ids,
+    )
+
+
+@router.post("/protocol-runs/start-for-job/{job_id}", response_model=ProtocolRunResponse)
+def start_protocol_run_for_job(
+    job_id: int,
+    service: Annotated[ProtocolRunService, Depends(get_protocol_run_service)],
+) -> ProtocolRunResponse:
+    try:
+        result = service.start_for_job(job_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    return ProtocolRunResponse(
+        job_id=job_id,
+        round_id=result.round_record.round_id,
+        task_ids=[task.task_id for task in result.training_tasks],
+        artifact_ids=result.artifact_ids,
+    )
+
+
+@router.post("/rounds/{round_id}/reconcile", response_model=RoundReconcileResponse)
+def reconcile_round(
+    round_id: str,
+    service: Annotated[RoundReconciliationService, Depends(get_round_reconciliation_service)],
+) -> RoundReconcileResponse:
+    try:
+        round_record = service.reconcile(round_id)
+    except RoundReconciliationError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    return RoundReconcileResponse(
+        round_id=round_record.round_id,
+        status=round_record.status.value,
+        failure_reason=round_record.failure_reason,
     )

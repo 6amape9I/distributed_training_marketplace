@@ -11,6 +11,7 @@ from orchestrator.app.domain.enums import TrainingTaskStatus, TrainingTaskType
 class TrainingTask:
     task_id: str
     job_id: int
+    round_id: str | None
     trainer_node_id: str | None
     task_type: TrainingTaskType
     status: TrainingTaskStatus

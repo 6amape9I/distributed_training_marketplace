@@ -3,9 +3,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from orchestrator.app.api.deps import get_db_session, get_job_sync_service
-from orchestrator.app.application.dto import JobDetailResponse, JobSummaryResponse, SyncResponse
+from orchestrator.app.api.deps import get_db_session, get_job_sync_service, get_round_reconciliation_service
+from orchestrator.app.application.dto import JobDetailResponse, JobSummaryResponse, RoundResponse, SyncResponse
 from orchestrator.app.application.services import JobSyncService
+from orchestrator.app.application.services.round_reconciliation_service import RoundReconciliationService
 from orchestrator.app.infrastructure.container import AppContainer
 from orchestrator.app.api.deps import get_container
 
@@ -69,3 +70,27 @@ def sync_jobs(sync_service: Annotated[JobSyncService, Depends(get_job_sync_servi
         skipped_events=result.skipped_events,
         latest_block=result.latest_block,
     )
+
+
+@router.get("/{job_id}/rounds", response_model=list[RoundResponse])
+def list_job_rounds(
+    job_id: int,
+    service: Annotated[RoundReconciliationService, Depends(get_round_reconciliation_service)],
+) -> list[RoundResponse]:
+    return [
+        RoundResponse(
+            round_id=round_record.round_id,
+            job_id=round_record.job_id,
+            protocol_name=round_record.protocol_name,
+            round_index=round_record.round_index,
+            status=round_record.status.value,
+            base_model_artifact_uri=round_record.base_model_artifact_uri,
+            aggregated_model_artifact_uri=round_record.aggregated_model_artifact_uri,
+            aggregated_model_artifact_hash=round_record.aggregated_model_artifact_hash,
+            evaluation_report_id=round_record.evaluation_report_id,
+            failure_reason=round_record.failure_reason,
+            created_at=round_record.created_at,
+            updated_at=round_record.updated_at,
+        )
+        for round_record in service.list_by_job(job_id)
+    ]

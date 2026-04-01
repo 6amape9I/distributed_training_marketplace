@@ -9,7 +9,8 @@ class EvaluationReport:
     report_id: str
     evaluation_task_id: str
     job_id: int
-    source_training_task_id: str
+    round_id: str | None
+    source_training_task_id: str | None
     evaluator_node_id: str
     metrics_json: dict[str, float | int | bool | str]
     sample_count: int

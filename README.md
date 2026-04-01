@@ -7,9 +7,10 @@
 - Stage 2 is complete: orchestrator core with persistence, lifecycle handling, blockchain sync, node registry, and DB-backed API.
 - Stage 3 is complete: trainer runtime, DB-backed training tasks, artifact upload/download, and real local `local_fit` execution.
 - Stage 4 is now implemented: evaluator runtime, evaluation tasks/reports, metric computation, and lifecycle transitions into `ready_for_attestation` or `evaluation_failed`.
+- Stage 5 is now implemented: round persistence, protocol plugin wiring, weighted aggregation, and plugin-driven end-to-end training plus evaluation.
 
 ## Architecture boundary
-The blockchain layer remains limited to trust and settlement. Training, evaluation, tasks, artifacts, and runtime coordination stay off-chain. Stage 4 still does not include on-chain attestation writes, final settlement execution, or a production aggregation framework.
+The blockchain layer remains limited to trust and settlement. Training, rounds, aggregation, evaluation, tasks, artifacts, and runtime coordination stay off-chain. Stage 5 still does not include on-chain attestation writes, final settlement execution, or Byzantine-robust aggregation.
 
 ## Key directories
 - `contracts/`: canonical Foundry workspace for the trust layer.
@@ -60,6 +61,7 @@ PYTHONPATH=. .venv/bin/uvicorn evaluator_agent.app.main:create_app --factory --h
 ## Verification
 - `make python-test` now covers orchestrator, trainer, and evaluator suites.
 - `trainer_agent/app/tests/test_multi_runtime_smoke.py` closes the Stage 3 multi-trainer caveat with an explicit two-runtime smoke test.
+- `orchestrator/app/tests/test_protocol_round_flow.py` proves the Stage 5 path: protocol run -> trainer tasks -> aggregation -> evaluator task -> final lifecycle state.
 - `docs/` is the canonical documentation tree.
 
-Start with `docs/setup/development.md`, `docs/setup/local-demo.md`, and `docs/mvp/stage-4-plan.md`.
+Start with `docs/setup/development.md`, `docs/setup/local-demo.md`, and `docs/mvp/stage-5-plan.md`.

@@ -134,6 +134,7 @@ class EvaluatorRuntime:
                     "evaluator_node_id": self.settings.evaluator_node_id,
                     "accuracy": artifacts.metrics_json["accuracy"],
                     "accepted": artifacts.acceptance_decision,
+                    "round_id": task.round_id,
                 },
                 job_id=task.job_id,
                 task_id=task.evaluation_task_id,

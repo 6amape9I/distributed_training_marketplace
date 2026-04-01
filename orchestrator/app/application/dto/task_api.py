@@ -34,6 +34,7 @@ class TaskSeedResponse(BaseModel):
 class TrainingTaskResponse(BaseModel):
     task_id: str
     job_id: int
+    round_id: str | None = None
     trainer_node_id: str | None = None
     task_type: str
     status: str

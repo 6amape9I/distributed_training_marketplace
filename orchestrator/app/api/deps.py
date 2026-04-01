@@ -5,6 +5,11 @@ from collections.abc import Iterator
 from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
+from orchestrator.app.application.protocol_runtime.fedavg_like_v1 import FedAvgLikeV1Protocol
+from orchestrator.app.application.protocol_runtime.registry import ProtocolRegistry
+from orchestrator.app.application.services.fedavg_like_aggregation_service import FedAvgLikeAggregationService
+from orchestrator.app.application.services.protocol_run_service import ProtocolRunService
+from orchestrator.app.application.services.round_reconciliation_service import RoundReconciliationService
 from orchestrator.app.application.services import (
     ArtifactService,
     EvaluationClaimService,
@@ -150,6 +155,58 @@ def get_evaluation_dispatch_service(
         training_tasks=container.training_task_repository(session),
         evaluation_tasks=container.evaluation_task_repository(session),
         artifacts=artifact_service,
+    )
+
+
+def get_fedavg_like_aggregation_service(
+    artifact_service: ArtifactService = Depends(get_artifact_service),
+) -> FedAvgLikeAggregationService:
+    return FedAvgLikeAggregationService(artifacts=artifact_service)
+
+
+def get_fedavg_like_protocol(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+    artifact_service: ArtifactService = Depends(get_artifact_service),
+    aggregation_service: FedAvgLikeAggregationService = Depends(get_fedavg_like_aggregation_service),
+) -> FedAvgLikeV1Protocol:
+    return FedAvgLikeV1Protocol(
+        jobs=container.job_repository(session),
+        nodes=container.node_repository(session),
+        rounds=container.round_repository(session),
+        training_tasks=container.training_task_repository(session),
+        evaluation_tasks=container.evaluation_task_repository(session),
+        artifacts=artifact_service,
+        aggregation=aggregation_service,
+    )
+
+
+def get_protocol_registry(
+    protocol: FedAvgLikeV1Protocol = Depends(get_fedavg_like_protocol),
+) -> ProtocolRegistry:
+    return ProtocolRegistry([protocol])
+
+
+def get_protocol_run_service(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+    protocols: ProtocolRegistry = Depends(get_protocol_registry),
+) -> ProtocolRunService:
+    return ProtocolRunService(jobs=container.job_repository(session), protocols=protocols)
+
+
+def get_round_reconciliation_service(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+    protocols: ProtocolRegistry = Depends(get_protocol_registry),
+) -> RoundReconciliationService:
+    return RoundReconciliationService(
+        rounds=container.round_repository(session),
+        jobs=container.job_repository(session),
+        training_tasks=container.training_task_repository(session),
+        evaluation_tasks=container.evaluation_task_repository(session),
+        evaluation_reports=container.evaluation_report_repository(session),
+        protocols=protocols,
     )
 
 

@@ -10,6 +10,7 @@ from orchestrator.app.api.routes.health import router as health_router
 from orchestrator.app.api.routes.internal import router as internal_router
 from orchestrator.app.api.routes.jobs import router as jobs_router
 from orchestrator.app.api.routes.nodes import router as nodes_router
+from orchestrator.app.api.routes.rounds import router as rounds_router
 from orchestrator.app.api.routes.status import router as status_router
 from orchestrator.app.api.routes.trainer_tasks import router as trainer_tasks_router
 from orchestrator.app.infrastructure.blockchain.client import TrainingMarketplaceClient
@@ -33,7 +34,7 @@ def create_app(
     container = create_container(resolved_settings, blockchain_client=blockchain_client)
     app = FastAPI(
         title="distributed-training-marketplace-orchestrator",
-        version="0.3.0",
+        version="0.5.0",
         lifespan=lifespan,
     )
     app.state.container = container
@@ -41,6 +42,7 @@ def create_app(
     app.include_router(status_router)
     app.include_router(artifacts_router)
     app.include_router(jobs_router)
+    app.include_router(rounds_router)
     app.include_router(nodes_router)
     app.include_router(trainer_tasks_router)
     app.include_router(evaluator_tasks_router)

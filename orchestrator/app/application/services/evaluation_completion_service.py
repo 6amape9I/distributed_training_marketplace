@@ -64,6 +64,7 @@ class EvaluationCompletionService:
                 report_id=f"evaluation-report-{uuid4().hex}",
                 evaluation_task_id=task.evaluation_task_id,
                 job_id=task.job_id,
+                round_id=task.round_id,
                 source_training_task_id=task.source_training_task_id,
                 evaluator_node_id=evaluator_node_id,
                 metrics_json=metrics_json,
