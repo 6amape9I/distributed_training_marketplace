@@ -1,10 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from orchestrator.app.api.deps import get_orchestration_coordinator
-from orchestrator.app.application.dto import ReconcileResponse, SyncResponse
-from orchestrator.app.application.services import OrchestrationCoordinator
+from orchestrator.app.api.deps import get_orchestration_coordinator, get_task_dispatch_service
+from orchestrator.app.application.dto import ReconcileResponse, SyncResponse, TaskSeedResponse
+from orchestrator.app.application.services import OrchestrationCoordinator, TaskDispatchError, TaskDispatchService
 
 router = APIRouter(prefix="/internal", tags=["internal"])
 
@@ -28,3 +28,15 @@ def reconcile_lifecycle(
     coordinator: Annotated[OrchestrationCoordinator, Depends(get_orchestration_coordinator)],
 ) -> ReconcileResponse:
     return ReconcileResponse(changed_jobs=coordinator.reconcile_lifecycle())
+
+
+@router.post("/tasks/seed-for-job/{job_id}", response_model=TaskSeedResponse)
+def seed_demo_tasks_for_job(
+    job_id: int,
+    service: Annotated[TaskDispatchService, Depends(get_task_dispatch_service)],
+) -> TaskSeedResponse:
+    try:
+        tasks, artifact_ids = service.seed_demo_tasks_for_job(job_id)
+    except TaskDispatchError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    return TaskSeedResponse(job_id=job_id, task_ids=[task.task_id for task in tasks], artifact_ids=artifact_ids)

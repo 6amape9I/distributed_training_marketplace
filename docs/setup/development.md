@@ -6,7 +6,7 @@ All commands below are written from the repository root unless a section says ot
 - Ubuntu-compatible shell environment
 - Python 3.12
 - Foundry (`forge`, `anvil`, `cast`)
-- PostgreSQL for the default Stage 2 orchestrator setup
+- PostgreSQL for the default orchestrator setup
 
 ## Bootstrap
 ```bash
@@ -22,7 +22,6 @@ make contracts-fmt
 ```
 
 ## Orchestrator DB migration
-Default Stage 2 target:
 ```bash
 export DATABASE_URL=postgresql+psycopg://dtm:dtm@localhost:5432/dtm_orchestrator
 make db-migrate
@@ -42,13 +41,23 @@ export MARKETPLACE_CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
 make orchestrator-run
 ```
 
+## Run trainers
+```bash
+export TRAINER_NODE_ID=trainer-1
+export ORCHESTRATOR_BASE_URL=http://127.0.0.1:8000
+export TRAINER_PUBLIC_URL=http://127.0.0.1:8010
+export LOCAL_WORKSPACE_PATH=./data/trainer-1
+PYTHONPATH=. .venv/bin/uvicorn trainer_agent.app.main:create_app --factory --host 0.0.0.0 --port 8010
+```
+
+Start additional trainers with different `TRAINER_NODE_ID`, `TRAINER_PUBLIC_URL`, and `LOCAL_WORKSPACE_PATH` values.
+
 ## Python test suite
 ```bash
 make python-test
 ```
 
 ## Notes
-- Stage 2 does not include real training, datasets, aggregation, or evaluator execution.
-- Stage 2 should not change the contract model unless a hard blocker is proven first.
-- Root environment defaults live in `.env.example`, while service-specific examples live under `infra/env/`.
+- Stage 3 includes real trainer execution and artifact movement.
+- Stage 3 still does not include evaluator execution, productized aggregation, or settlement finalization from training results.
 - The canonical Codex/project guidance lives in `docs/codex/`.

@@ -1,17 +1,18 @@
 # Orchestrator Core
 
-Stage 2 turns the orchestrator into a real off-chain control plane.
+Stage 3 extends the orchestrator into the first real off-chain execution control plane.
 
 ## Responsibilities
 - mirror contract events into persistent storage;
 - maintain explicit off-chain job lifecycle state;
-- expose DB-backed API endpoints for jobs, nodes, and status;
+- expose DB-backed API endpoints for jobs, nodes, trainer tasks, artifacts, and status;
 - support node registration and heartbeat flows;
-- prepare funded jobs for future scheduling without dispatching real training work.
+- seed and track trainer tasks;
+- persist artifact metadata and serve artifact content.
 
 ## Guardrails
-- Do not change the Stage 1 contract model unless a real Stage 2 blocker is proven first.
-- Do not pull Stage 3 into this service: no real training, datasets, aggregation, evaluator logic, or artifact execution flows.
+- Do not change the Stage 1 contract model unless a real blocker is proven first.
+- Do not pull evaluator execution, productized aggregation, or settlement finalization into this service yet.
 
 ## Environment variables
 Required:
@@ -32,7 +33,7 @@ Optional:
 ```bash
 PYTHONPATH=. .venv/bin/alembic -c orchestrator/alembic.ini upgrade head
 PYTHONPATH=. .venv/bin/uvicorn orchestrator.app.api.main:create_app --factory --host 0.0.0.0 --port 8000
-PYTHONPATH=. .venv/bin/pytest orchestrator/app/tests
+PYTHONPATH=. .venv/bin/pytest orchestrator/app/tests trainer_agent/app/tests
 ```
 
 ## API surface
@@ -45,5 +46,12 @@ PYTHONPATH=. .venv/bin/pytest orchestrator/app/tests
 - `GET /nodes/{node_id}`
 - `POST /nodes/register`
 - `POST /nodes/heartbeat`
-- `POST /internal/sync/run-once`
-- `POST /internal/lifecycle/reconcile`
+- `POST /trainer/tasks/claim`
+- `POST /trainer/tasks/{task_id}/start`
+- `POST /trainer/tasks/{task_id}/complete`
+- `POST /trainer/tasks/{task_id}/fail`
+- `GET /trainer/tasks/{task_id}`
+- `POST /artifacts/upload`
+- `GET /artifacts/{artifact_id}`
+- `GET /artifacts/{artifact_id}/content`
+- `POST /internal/tasks/seed-for-job/{job_id}`

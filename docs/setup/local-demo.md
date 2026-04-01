@@ -1,42 +1,46 @@
 # Local Demo
 
-All commands below are written from the repository root unless a line says otherwise.
+All commands below are written from the repository root unless a section says otherwise.
 
-## Contract-local smoke path
-1. Start a local chain:
-   ```bash
-   anvil
-   ```
-2. In another shell, deploy the marketplace:
-   ```bash
-   cd contracts
-   forge script script/DeployLocal.s.sol:DeployLocalScript \
-     --rpc-url http://127.0.0.1:8545 \
-     --broadcast \
-     --private-key ${DEPLOYER_PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}
-   ```
-   If your current shell is already in `docs/setup/`, use `cd ../../contracts` instead of `cd contracts`.
-3. Run the unit suite:
-   ```bash
-   forge test --root contracts
-   ```
-4. Optionally verify the deployment:
-   ```bash
-   cast call <deployed_address> "nextJobId()(uint256)" --rpc-url http://127.0.0.1:8545
-   ```
+## 1. Start local infrastructure
+```bash
+anvil
+```
 
-## Common Foundry issue
-If Foundry prints `You seem to be using Foundry's default sender`, rerun the deploy command with an explicit signer.
+In a second shell:
+```bash
+export DATABASE_URL=sqlite:///./data/orchestrator.db
+make db-migrate
+make orchestrator-run
+```
 
-- Local `anvil` default: use `--private-key 0xac0974...ff80`
-- Alternative for unlocked local accounts:
-  ```bash
-  forge script script/DeployLocal.s.sol:DeployLocalScript \
-    --rpc-url http://127.0.0.1:8545 \
-    --broadcast \
-    --unlocked \
-    --sender 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-  ```
+## 2. Start trainers
+Shell 3:
+```bash
+export TRAINER_NODE_ID=trainer-1
+export ORCHESTRATOR_BASE_URL=http://127.0.0.1:8000
+export TRAINER_PUBLIC_URL=http://127.0.0.1:8010
+export LOCAL_WORKSPACE_PATH=./data/trainer-1
+PYTHONPATH=. .venv/bin/uvicorn trainer_agent.app.main:create_app --factory --host 0.0.0.0 --port 8010
+```
 
-## What this proves
-The smoke path validates the Stage 1 trust layer in isolation: deployment, job lifecycle state transitions, and settlement withdrawals.
+Shell 4:
+```bash
+export TRAINER_NODE_ID=trainer-2
+export ORCHESTRATOR_BASE_URL=http://127.0.0.1:8000
+export TRAINER_PUBLIC_URL=http://127.0.0.1:8011
+export LOCAL_WORKSPACE_PATH=./data/trainer-2
+PYTHONPATH=. .venv/bin/uvicorn trainer_agent.app.main:create_app --factory --host 0.0.0.0 --port 8011
+```
+
+## 3. Seed a demo job and trainer tasks
+Use the orchestrator internal endpoint after a job exists in the local DB:
+```bash
+curl -X POST http://127.0.0.1:8000/internal/tasks/seed-for-job/1
+```
+
+## 4. Observe execution
+- trainers should register and stay online via heartbeat;
+- each trainer should claim a different `local_fit` task;
+- each completed task should upload a `task_result` and a `trainer_report` artifact;
+- artifacts should appear under `ARTIFACT_ROOT`, while trainer-local working files appear under each trainer workspace.

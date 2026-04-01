@@ -5,9 +5,24 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from orchestrator.app.domain.entities import ChainSyncState, Job, JobEventRecord, Node
-from orchestrator.app.domain.enums import NodeRole, NodeStatus, OffchainJobStatus, OnchainJobStatus
-from orchestrator.app.infrastructure.db.models import ChainSyncStateModel, JobEventModel, JobModel, NodeModel
+from orchestrator.app.domain.entities import Artifact, ChainSyncState, Job, JobEventRecord, Node, TrainingTask
+from orchestrator.app.domain.enums import (
+    ArtifactKind,
+    NodeRole,
+    NodeStatus,
+    OffchainJobStatus,
+    OnchainJobStatus,
+    TrainingTaskStatus,
+    TrainingTaskType,
+)
+from orchestrator.app.infrastructure.db.models import (
+    ArtifactModel,
+    ChainSyncStateModel,
+    JobEventModel,
+    JobModel,
+    NodeModel,
+    TrainingTaskModel,
+)
 
 
 def _job_to_entity(model: JobModel) -> Job:
@@ -51,6 +66,44 @@ def _sync_to_entity(model: ChainSyncStateModel) -> ChainSyncState:
         contract_address=model.contract_address,
         last_processed_block=model.last_processed_block,
         updated_at=model.updated_at,
+    )
+
+
+def _task_to_entity(model: TrainingTaskModel) -> TrainingTask:
+    return TrainingTask(
+        task_id=model.task_id,
+        job_id=model.job_id,
+        trainer_node_id=model.trainer_node_id,
+        task_type=TrainingTaskType(model.task_type),
+        status=TrainingTaskStatus(model.status),
+        data_partition_id=model.data_partition_id,
+        model_artifact_uri=model.model_artifact_uri,
+        dataset_artifact_uri=model.dataset_artifact_uri,
+        config_json=model.config_json,
+        result_artifact_uri=model.result_artifact_uri,
+        result_artifact_hash=model.result_artifact_hash,
+        report_artifact_uri=model.report_artifact_uri,
+        report_artifact_hash=model.report_artifact_hash,
+        claimed_at=model.claimed_at,
+        completed_at=model.completed_at,
+        failure_reason=model.failure_reason,
+        created_at=model.created_at,
+        updated_at=model.updated_at,
+    )
+
+
+def _artifact_to_entity(model: ArtifactModel) -> Artifact:
+    return Artifact(
+        artifact_id=model.artifact_id,
+        kind=ArtifactKind(model.kind),
+        uri=model.uri,
+        content_hash=model.content_hash,
+        content_size_bytes=model.content_size_bytes,
+        mime_type=model.mime_type,
+        metadata_json=model.metadata_json,
+        job_id=model.job_id,
+        task_id=model.task_id,
+        created_at=model.created_at,
     )
 
 
@@ -167,3 +220,116 @@ class SqlAlchemyJobEventRepository:
         self.session.add(model)
         self.session.flush()
         return event
+
+
+class SqlAlchemyTrainingTaskRepository:
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def get(self, task_id: str) -> TrainingTask | None:
+        model = self.session.get(TrainingTaskModel, task_id)
+        return _task_to_entity(model) if model else None
+
+    def list(self) -> Sequence[TrainingTask]:
+        models = self.session.query(TrainingTaskModel).order_by(TrainingTaskModel.created_at, TrainingTaskModel.task_id).all()
+        return [_task_to_entity(model) for model in models]
+
+    def list_by_job(self, job_id: int) -> Sequence[TrainingTask]:
+        models = self.session.query(TrainingTaskModel).filter(TrainingTaskModel.job_id == job_id).order_by(TrainingTaskModel.created_at, TrainingTaskModel.task_id).all()
+        return [_task_to_entity(model) for model in models]
+
+    def list_by_status(self, status: TrainingTaskStatus) -> Sequence[TrainingTask]:
+        models = self.session.query(TrainingTaskModel).filter(TrainingTaskModel.status == status.value).order_by(TrainingTaskModel.created_at, TrainingTaskModel.task_id).all()
+        return [_task_to_entity(model) for model in models]
+
+    def list_by_trainer(self, trainer_node_id: str) -> Sequence[TrainingTask]:
+        models = self.session.query(TrainingTaskModel).filter(TrainingTaskModel.trainer_node_id == trainer_node_id).order_by(TrainingTaskModel.created_at, TrainingTaskModel.task_id).all()
+        return [_task_to_entity(model) for model in models]
+
+    def upsert(self, task: TrainingTask) -> TrainingTask:
+        model = self.session.get(TrainingTaskModel, task.task_id)
+        if model is None:
+            model = TrainingTaskModel(task_id=task.task_id)
+            self.session.add(model)
+        model.job_id = task.job_id
+        model.trainer_node_id = task.trainer_node_id
+        model.task_type = task.task_type.value
+        model.status = task.status.value
+        model.data_partition_id = task.data_partition_id
+        model.model_artifact_uri = task.model_artifact_uri
+        model.dataset_artifact_uri = task.dataset_artifact_uri
+        model.config_json = task.config_json
+        model.result_artifact_uri = task.result_artifact_uri
+        model.result_artifact_hash = task.result_artifact_hash
+        model.report_artifact_uri = task.report_artifact_uri
+        model.report_artifact_hash = task.report_artifact_hash
+        model.claimed_at = task.claimed_at
+        model.completed_at = task.completed_at
+        model.failure_reason = task.failure_reason
+        self.session.flush()
+        return _task_to_entity(model)
+
+    def claim_next_pending(self, trainer_node_id: str) -> TrainingTask | None:
+        while True:
+            candidate = (
+                self.session.query(TrainingTaskModel)
+                .filter(TrainingTaskModel.status == TrainingTaskStatus.PENDING.value)
+                .order_by(TrainingTaskModel.created_at, TrainingTaskModel.task_id)
+                .first()
+            )
+            if candidate is None:
+                return None
+            now = datetime.now(timezone.utc)
+            updated = (
+                self.session.query(TrainingTaskModel)
+                .filter(
+                    TrainingTaskModel.task_id == candidate.task_id,
+                    TrainingTaskModel.status == TrainingTaskStatus.PENDING.value,
+                )
+                .update(
+                    {
+                        TrainingTaskModel.status: TrainingTaskStatus.CLAIMED.value,
+                        TrainingTaskModel.trainer_node_id: trainer_node_id,
+                        TrainingTaskModel.claimed_at: now,
+                    },
+                    synchronize_session=False,
+                )
+            )
+            self.session.flush()
+            if updated == 1:
+                claimed = self.session.get(TrainingTaskModel, candidate.task_id)
+                return _task_to_entity(claimed)
+            self.session.expire_all()
+
+
+class SqlAlchemyArtifactRepository:
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def get(self, artifact_id: str) -> Artifact | None:
+        model = self.session.get(ArtifactModel, artifact_id)
+        return _artifact_to_entity(model) if model else None
+
+    def list(self) -> Sequence[Artifact]:
+        models = self.session.query(ArtifactModel).order_by(ArtifactModel.created_at, ArtifactModel.artifact_id).all()
+        return [_artifact_to_entity(model) for model in models]
+
+    def list_by_task(self, task_id: str) -> Sequence[Artifact]:
+        models = self.session.query(ArtifactModel).filter(ArtifactModel.task_id == task_id).order_by(ArtifactModel.created_at, ArtifactModel.artifact_id).all()
+        return [_artifact_to_entity(model) for model in models]
+
+    def upsert(self, artifact: Artifact) -> Artifact:
+        model = self.session.get(ArtifactModel, artifact.artifact_id)
+        if model is None:
+            model = ArtifactModel(artifact_id=artifact.artifact_id)
+            self.session.add(model)
+        model.kind = artifact.kind.value
+        model.uri = artifact.uri
+        model.content_hash = artifact.content_hash
+        model.content_size_bytes = artifact.content_size_bytes
+        model.mime_type = artifact.mime_type
+        model.metadata_json = artifact.metadata_json
+        model.job_id = artifact.job_id
+        model.task_id = artifact.task_id
+        self.session.flush()
+        return _artifact_to_entity(model)

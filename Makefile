@@ -20,7 +20,7 @@ contracts-fmt:
 	cd contracts && forge fmt
 
 python-test:
-	PYTHONPATH=. $(PYTEST) orchestrator/app/tests
+	PYTHONPATH=. $(PYTEST) orchestrator/app/tests trainer_agent/app/tests
 
 db-migrate:
 	PYTHONPATH=. $(VENV)/alembic -c orchestrator/alembic.ini upgrade head

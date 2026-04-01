@@ -6,12 +6,16 @@ from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
 from orchestrator.app.application.services import (
+    ArtifactService,
     JobSyncService,
     NodeLivenessService,
     NodeRegistryService,
     OrchestrationCoordinator,
     SchedulingPreparationService,
     StatusService,
+    TaskClaimService,
+    TaskCompletionService,
+    TaskDispatchService,
 )
 from orchestrator.app.infrastructure.container import AppContainer
 
@@ -73,10 +77,47 @@ def get_job_sync_service(
     )
 
 
+def get_artifact_service(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+) -> ArtifactService:
+    return ArtifactService(repository=container.artifact_repository(session), storage=container.artifact_storage)
+
+
+def get_task_claim_service(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+) -> TaskClaimService:
+    return TaskClaimService(tasks=container.training_task_repository(session), nodes=container.node_repository(session))
+
+
+def get_task_completion_service(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+) -> TaskCompletionService:
+    return TaskCompletionService(
+        tasks=container.training_task_repository(session),
+        artifacts=container.artifact_repository(session),
+    )
+
+
+def get_task_dispatch_service(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+    artifact_service: ArtifactService = Depends(get_artifact_service),
+) -> TaskDispatchService:
+    return TaskDispatchService(
+        jobs=container.job_repository(session),
+        nodes=container.node_repository(session),
+        tasks=container.training_task_repository(session),
+        artifacts=artifact_service,
+    )
+
+
 def get_status_service(
     session: Session = Depends(get_db_session),
     container: AppContainer = Depends(get_container),
-) -> StatusService:
+) -> tuple[StatusService, int | None]:
     sync_state = container.sync_state_repository(session).get(
         f"{container.settings.chain_id}:{container.settings.marketplace_contract_address.lower()}"
     )

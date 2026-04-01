@@ -27,24 +27,34 @@ services:
       - anvil
       - postgres
 
-  trainer:
+  trainer-1:
     build:
       context: ../..
       dockerfile: infra/docker/trainer.Dockerfile
     env_file:
       - ../env/trainer.env.example
+    environment:
+      TRAINER_NODE_ID: trainer-1
+      TRAINER_PUBLIC_URL: http://trainer-1:8010
+      LOCAL_WORKSPACE_PATH: /app/data/trainer-1
     ports:
       - "8010:8010"
     depends_on:
       - orchestrator
 
-  evaluator:
+  trainer-2:
     build:
       context: ../..
-      dockerfile: infra/docker/evaluator.Dockerfile
+      dockerfile: infra/docker/trainer.Dockerfile
     env_file:
-      - ../env/evaluator.env.example
+      - ../env/trainer.env.example
+    command: uvicorn trainer_agent.app.main:create_app --factory --host 0.0.0.0 --port 8011
+    environment:
+      TRAINER_NODE_ID: trainer-2
+      TRAINER_BIND_PORT: 8011
+      TRAINER_PUBLIC_URL: http://trainer-2:8011
+      LOCAL_WORKSPACE_PATH: /app/data/trainer-2
     ports:
-      - "8020:8020"
+      - "8011:8011"
     depends_on:
       - orchestrator

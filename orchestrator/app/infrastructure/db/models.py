@@ -71,3 +71,44 @@ class JobEventModel(Base):
     job_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     payload_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     processed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+
+class TrainingTaskModel(Base):
+    __tablename__ = "training_tasks"
+
+    task_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    job_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    trainer_node_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    task_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    data_partition_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    model_artifact_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    dataset_artifact_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    config_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    result_artifact_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
+    result_artifact_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    report_artifact_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
+    report_artifact_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class ArtifactModel(Base):
+    __tablename__ = "artifacts"
+
+    artifact_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    uri: Mapped[str] = mapped_column(Text, nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    content_size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(255), nullable=False)
+    metadata_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    job_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    task_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

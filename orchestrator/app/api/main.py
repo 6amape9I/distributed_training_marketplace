@@ -4,11 +4,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from orchestrator.app.api.routes.artifacts import router as artifacts_router
 from orchestrator.app.api.routes.health import router as health_router
 from orchestrator.app.api.routes.internal import router as internal_router
 from orchestrator.app.api.routes.jobs import router as jobs_router
 from orchestrator.app.api.routes.nodes import router as nodes_router
 from orchestrator.app.api.routes.status import router as status_router
+from orchestrator.app.api.routes.trainer_tasks import router as trainer_tasks_router
 from orchestrator.app.infrastructure.blockchain.client import TrainingMarketplaceClient
 from orchestrator.app.infrastructure.container import AppContainer, create_container
 from orchestrator.app.infrastructure.db.session import database_is_available
@@ -36,7 +38,9 @@ def create_app(
     app.state.container = container
     app.include_router(health_router)
     app.include_router(status_router)
+    app.include_router(artifacts_router)
     app.include_router(jobs_router)
     app.include_router(nodes_router)
+    app.include_router(trainer_tasks_router)
     app.include_router(internal_router)
     return app

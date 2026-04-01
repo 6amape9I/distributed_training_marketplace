@@ -1,11 +1,7 @@
 from pydantic import BaseModel, Field
 
 from shared.python.enums import JobStatus
-
-
-class ArtifactRef(BaseModel):
-    uri: str
-    digest: str | None = None
+from shared.python.schemas.artifact import ArtifactRef
 
 
 class SettlementDecision(BaseModel):
