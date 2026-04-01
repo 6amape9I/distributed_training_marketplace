@@ -5,14 +5,24 @@ services:
     ports:
       - "8545:8545"
 
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: dtm
+      POSTGRES_PASSWORD: dtm
+      POSTGRES_DB: dtm_orchestrator
+    ports:
+      - "5432:5432"
+
   orchestrator:
     build:
       context: ../..
       dockerfile: infra/docker/orchestrator.Dockerfile
     env_file:
       - ../env/orchestrator.env.example
-    command: uvicorn orchestrator.app.api.main:app --host 0.0.0.0 --port 8000
+    command: uvicorn orchestrator.app.api.main:create_app --factory --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     depends_on:
       - anvil
+      - postgres

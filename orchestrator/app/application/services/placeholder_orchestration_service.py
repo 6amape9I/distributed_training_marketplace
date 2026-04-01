@@ -1,9 +1,3 @@
-from dataclasses import dataclass
+from .orchestration_coordinator import OrchestrationCoordinator
 
-
-@dataclass(slots=True)
-class PlaceholderOrchestrationService:
-    name: str = "stage1-scaffold"
-
-    def describe(self) -> str:
-        return "Orchestrator business logic starts in Stage 2."
+__all__ = ["OrchestrationCoordinator"]

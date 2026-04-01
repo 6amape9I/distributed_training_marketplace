@@ -1,5 +1,95 @@
-from orchestrator.app.infrastructure.settings import Settings, get_settings
+from __future__ import annotations
+
+from collections.abc import Iterator
+
+from fastapi import Depends, Request
+from sqlalchemy.orm import Session
+
+from orchestrator.app.application.services import (
+    JobSyncService,
+    NodeLivenessService,
+    NodeRegistryService,
+    OrchestrationCoordinator,
+    SchedulingPreparationService,
+    StatusService,
+)
+from orchestrator.app.infrastructure.container import AppContainer
 
 
-def get_app_settings() -> Settings:
-    return get_settings()
+def get_container(request: Request) -> AppContainer:
+    return request.app.state.container
+
+
+def get_db_session(container: AppContainer = Depends(get_container)) -> Iterator[Session]:
+    session = container.session_factory()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def get_node_liveness_service(container: AppContainer = Depends(get_container)) -> NodeLivenessService:
+    return NodeLivenessService(container.settings.node_stale_after_seconds)
+
+
+def get_node_registry_service(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+) -> NodeRegistryService:
+    return NodeRegistryService(repository=container.node_repository(session))
+
+
+def get_scheduling_service(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+) -> SchedulingPreparationService:
+    return SchedulingPreparationService(
+        jobs=container.job_repository(session),
+        nodes=container.node_repository(session),
+        lifecycle=container.lifecycle_service,
+        node_selection=container.node_selection_strategy,
+    )
+
+
+def get_job_sync_service(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+) -> JobSyncService:
+    settings = container.settings
+    return JobSyncService(
+        blockchain=container.blockchain_client,
+        jobs=container.job_repository(session),
+        sync_state=container.sync_state_repository(session),
+        job_events=container.job_event_repository(session),
+        lifecycle=container.lifecycle_service,
+        chain_id=settings.chain_id,
+        contract_address=settings.marketplace_contract_address,
+        start_block=settings.sync_start_block,
+        batch_size=settings.sync_batch_size,
+    )
+
+
+def get_status_service(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+) -> StatusService:
+    sync_state = container.sync_state_repository(session).get(
+        f"{container.settings.chain_id}:{container.settings.marketplace_contract_address.lower()}"
+    )
+    last_processed_block = sync_state.last_processed_block if sync_state else None
+    return StatusService(
+        settings=container.settings,
+        engine=container.engine,
+        blockchain=container.blockchain_client,
+    ), last_processed_block
+
+
+def get_orchestration_coordinator(
+    sync_service: JobSyncService = Depends(get_job_sync_service),
+    scheduling_service: SchedulingPreparationService = Depends(get_scheduling_service),
+) -> OrchestrationCoordinator:
+    return OrchestrationCoordinator(sync_service=sync_service, scheduling_service=scheduling_service)
