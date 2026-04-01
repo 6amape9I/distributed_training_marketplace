@@ -18,7 +18,7 @@ All commands below are written from the repository root unless a line says other
    If your current shell is already in `docs/setup/`, use `cd ../../contracts` instead of `cd contracts`.
 3. Run the unit suite:
    ```bash
-   forge test
+   forge test --root contracts
    ```
 4. Optionally verify the deployment:
    ```bash
