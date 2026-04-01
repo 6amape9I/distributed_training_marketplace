@@ -5,9 +5,19 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from orchestrator.app.domain.entities import Artifact, ChainSyncState, Job, JobEventRecord, Node, TrainingTask
+from orchestrator.app.domain.entities import (
+    Artifact,
+    ChainSyncState,
+    EvaluationReport,
+    EvaluationTask,
+    Job,
+    JobEventRecord,
+    Node,
+    TrainingTask,
+)
 from orchestrator.app.domain.enums import (
     ArtifactKind,
+    EvaluationTaskStatus,
     NodeRole,
     NodeStatus,
     OffchainJobStatus,
@@ -18,6 +28,8 @@ from orchestrator.app.domain.enums import (
 from orchestrator.app.infrastructure.db.models import (
     ArtifactModel,
     ChainSyncStateModel,
+    EvaluationReportModel,
+    EvaluationTaskModel,
     JobEventModel,
     JobModel,
     NodeModel,
@@ -103,6 +115,41 @@ def _artifact_to_entity(model: ArtifactModel) -> Artifact:
         metadata_json=model.metadata_json,
         job_id=model.job_id,
         task_id=model.task_id,
+        created_at=model.created_at,
+    )
+
+
+def _evaluation_task_to_entity(model: EvaluationTaskModel) -> EvaluationTask:
+    return EvaluationTask(
+        evaluation_task_id=model.evaluation_task_id,
+        job_id=model.job_id,
+        source_training_task_id=model.source_training_task_id,
+        evaluator_node_id=model.evaluator_node_id,
+        status=EvaluationTaskStatus(model.status),
+        target_model_artifact_uri=model.target_model_artifact_uri,
+        dataset_artifact_uri=model.dataset_artifact_uri,
+        config_json=model.config_json,
+        report_artifact_uri=model.report_artifact_uri,
+        report_artifact_hash=model.report_artifact_hash,
+        claimed_at=model.claimed_at,
+        completed_at=model.completed_at,
+        failure_reason=model.failure_reason,
+        created_at=model.created_at,
+        updated_at=model.updated_at,
+    )
+
+
+def _evaluation_report_to_entity(model: EvaluationReportModel) -> EvaluationReport:
+    return EvaluationReport(
+        report_id=model.report_id,
+        evaluation_task_id=model.evaluation_task_id,
+        job_id=model.job_id,
+        source_training_task_id=model.source_training_task_id,
+        evaluator_node_id=model.evaluator_node_id,
+        metrics_json=model.metrics_json,
+        sample_count=model.sample_count,
+        acceptance_decision=model.acceptance_decision,
+        target_model_digest=model.target_model_digest,
         created_at=model.created_at,
     )
 
@@ -302,6 +349,83 @@ class SqlAlchemyTrainingTaskRepository:
             self.session.expire_all()
 
 
+class SqlAlchemyEvaluationTaskRepository:
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def get(self, evaluation_task_id: str) -> EvaluationTask | None:
+        model = self.session.get(EvaluationTaskModel, evaluation_task_id)
+        return _evaluation_task_to_entity(model) if model else None
+
+    def list(self) -> Sequence[EvaluationTask]:
+        models = self.session.query(EvaluationTaskModel).order_by(EvaluationTaskModel.created_at, EvaluationTaskModel.evaluation_task_id).all()
+        return [_evaluation_task_to_entity(model) for model in models]
+
+    def list_by_job(self, job_id: int) -> Sequence[EvaluationTask]:
+        models = self.session.query(EvaluationTaskModel).filter(EvaluationTaskModel.job_id == job_id).order_by(EvaluationTaskModel.created_at, EvaluationTaskModel.evaluation_task_id).all()
+        return [_evaluation_task_to_entity(model) for model in models]
+
+    def list_by_status(self, status: EvaluationTaskStatus) -> Sequence[EvaluationTask]:
+        models = self.session.query(EvaluationTaskModel).filter(EvaluationTaskModel.status == status.value).order_by(EvaluationTaskModel.created_at, EvaluationTaskModel.evaluation_task_id).all()
+        return [_evaluation_task_to_entity(model) for model in models]
+
+    def list_by_evaluator(self, evaluator_node_id: str) -> Sequence[EvaluationTask]:
+        models = self.session.query(EvaluationTaskModel).filter(EvaluationTaskModel.evaluator_node_id == evaluator_node_id).order_by(EvaluationTaskModel.created_at, EvaluationTaskModel.evaluation_task_id).all()
+        return [_evaluation_task_to_entity(model) for model in models]
+
+    def upsert(self, task: EvaluationTask) -> EvaluationTask:
+        model = self.session.get(EvaluationTaskModel, task.evaluation_task_id)
+        if model is None:
+            model = EvaluationTaskModel(evaluation_task_id=task.evaluation_task_id)
+            self.session.add(model)
+        model.job_id = task.job_id
+        model.source_training_task_id = task.source_training_task_id
+        model.evaluator_node_id = task.evaluator_node_id
+        model.status = task.status.value
+        model.target_model_artifact_uri = task.target_model_artifact_uri
+        model.dataset_artifact_uri = task.dataset_artifact_uri
+        model.config_json = task.config_json
+        model.report_artifact_uri = task.report_artifact_uri
+        model.report_artifact_hash = task.report_artifact_hash
+        model.claimed_at = task.claimed_at
+        model.completed_at = task.completed_at
+        model.failure_reason = task.failure_reason
+        self.session.flush()
+        return _evaluation_task_to_entity(model)
+
+    def claim_next_pending(self, evaluator_node_id: str) -> EvaluationTask | None:
+        while True:
+            candidate = (
+                self.session.query(EvaluationTaskModel)
+                .filter(EvaluationTaskModel.status == EvaluationTaskStatus.PENDING.value)
+                .order_by(EvaluationTaskModel.created_at, EvaluationTaskModel.evaluation_task_id)
+                .first()
+            )
+            if candidate is None:
+                return None
+            now = datetime.now(timezone.utc)
+            updated = (
+                self.session.query(EvaluationTaskModel)
+                .filter(
+                    EvaluationTaskModel.evaluation_task_id == candidate.evaluation_task_id,
+                    EvaluationTaskModel.status == EvaluationTaskStatus.PENDING.value,
+                )
+                .update(
+                    {
+                        EvaluationTaskModel.status: EvaluationTaskStatus.CLAIMED.value,
+                        EvaluationTaskModel.evaluator_node_id: evaluator_node_id,
+                        EvaluationTaskModel.claimed_at: now,
+                    },
+                    synchronize_session=False,
+                )
+            )
+            self.session.flush()
+            if updated == 1:
+                claimed = self.session.get(EvaluationTaskModel, candidate.evaluation_task_id)
+                return _evaluation_task_to_entity(claimed)
+            self.session.expire_all()
+
+
 class SqlAlchemyArtifactRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
@@ -333,3 +457,40 @@ class SqlAlchemyArtifactRepository:
         model.task_id = artifact.task_id
         self.session.flush()
         return _artifact_to_entity(model)
+
+
+class SqlAlchemyEvaluationReportRepository:
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def get(self, report_id: str) -> EvaluationReport | None:
+        model = self.session.get(EvaluationReportModel, report_id)
+        return _evaluation_report_to_entity(model) if model else None
+
+    def list(self) -> Sequence[EvaluationReport]:
+        models = self.session.query(EvaluationReportModel).order_by(EvaluationReportModel.created_at, EvaluationReportModel.report_id).all()
+        return [_evaluation_report_to_entity(model) for model in models]
+
+    def list_by_job(self, job_id: int) -> Sequence[EvaluationReport]:
+        models = self.session.query(EvaluationReportModel).filter(EvaluationReportModel.job_id == job_id).order_by(EvaluationReportModel.created_at, EvaluationReportModel.report_id).all()
+        return [_evaluation_report_to_entity(model) for model in models]
+
+    def list_by_evaluation_task(self, evaluation_task_id: str) -> Sequence[EvaluationReport]:
+        models = self.session.query(EvaluationReportModel).filter(EvaluationReportModel.evaluation_task_id == evaluation_task_id).order_by(EvaluationReportModel.created_at, EvaluationReportModel.report_id).all()
+        return [_evaluation_report_to_entity(model) for model in models]
+
+    def upsert(self, report: EvaluationReport) -> EvaluationReport:
+        model = self.session.get(EvaluationReportModel, report.report_id)
+        if model is None:
+            model = EvaluationReportModel(report_id=report.report_id)
+            self.session.add(model)
+        model.evaluation_task_id = report.evaluation_task_id
+        model.job_id = report.job_id
+        model.source_training_task_id = report.source_training_task_id
+        model.evaluator_node_id = report.evaluator_node_id
+        model.metrics_json = report.metrics_json
+        model.sample_count = report.sample_count
+        model.acceptance_decision = report.acceptance_decision
+        model.target_model_digest = report.target_model_digest
+        self.session.flush()
+        return _evaluation_report_to_entity(model)

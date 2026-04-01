@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import JSON, BigInteger, DateTime, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import JSON, BigInteger, Boolean, DateTime, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from orchestrator.app.infrastructure.db.base import Base
@@ -73,7 +73,6 @@ class JobEventModel(Base):
     processed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
-
 class TrainingTaskModel(Base):
     __tablename__ = "training_tasks"
 
@@ -111,4 +110,41 @@ class ArtifactModel(Base):
     metadata_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     job_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     task_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class EvaluationTaskModel(Base):
+    __tablename__ = "evaluation_tasks"
+
+    evaluation_task_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    job_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    source_training_task_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    evaluator_node_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    target_model_artifact_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    dataset_artifact_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    config_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    report_artifact_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
+    report_artifact_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class EvaluationReportModel(Base):
+    __tablename__ = "evaluation_reports"
+
+    report_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    evaluation_task_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    job_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    source_training_task_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    evaluator_node_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    metrics_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    sample_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    acceptance_decision: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    target_model_digest: Mapped[str] = mapped_column(String(128), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

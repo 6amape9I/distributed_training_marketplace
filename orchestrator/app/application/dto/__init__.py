@@ -1,4 +1,12 @@
 from .artifact_api import ArtifactContentResponse, ArtifactResponse, ArtifactUploadRequest
+from .evaluation_api import (
+    EvaluationTaskClaimRequest,
+    EvaluationTaskCompleteRequest,
+    EvaluationTaskFailRequest,
+    EvaluationTaskResponse,
+    EvaluationTaskSeedResponse,
+    EvaluationTaskStartRequest,
+)
 from .job_api import JobDetailResponse, JobSummaryResponse, SyncResponse
 from .node_api import NodeHeartbeatRequest, NodeRegistrationRequest, NodeResponse
 from .status_api import HealthResponse, ReconcileResponse, StatusResponse
@@ -15,6 +23,12 @@ __all__ = [
     "ArtifactContentResponse",
     "ArtifactResponse",
     "ArtifactUploadRequest",
+    "EvaluationTaskClaimRequest",
+    "EvaluationTaskCompleteRequest",
+    "EvaluationTaskFailRequest",
+    "EvaluationTaskResponse",
+    "EvaluationTaskSeedResponse",
+    "EvaluationTaskStartRequest",
     "HealthResponse",
     "JobDetailResponse",
     "JobSummaryResponse",

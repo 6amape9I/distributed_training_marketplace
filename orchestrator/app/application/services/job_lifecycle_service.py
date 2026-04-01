@@ -34,11 +34,24 @@ _ALLOWED_TRANSITIONS: dict[OffchainJobStatus, set[OffchainJobStatus]] = {
         OffchainJobStatus.FAILED,
     },
     OffchainJobStatus.SCHEDULING: {
+        OffchainJobStatus.EVALUATING,
         OffchainJobStatus.AWAITING_ATTESTATION,
         OffchainJobStatus.ATTESTED,
         OffchainJobStatus.FINALIZED,
         OffchainJobStatus.FAILED,
     },
+    OffchainJobStatus.EVALUATING: {
+        OffchainJobStatus.READY_FOR_ATTESTATION,
+        OffchainJobStatus.EVALUATION_FAILED,
+        OffchainJobStatus.FAILED,
+    },
+    OffchainJobStatus.READY_FOR_ATTESTATION: {
+        OffchainJobStatus.AWAITING_ATTESTATION,
+        OffchainJobStatus.ATTESTED,
+        OffchainJobStatus.FINALIZED,
+        OffchainJobStatus.FAILED,
+    },
+    OffchainJobStatus.EVALUATION_FAILED: {OffchainJobStatus.FAILED},
     OffchainJobStatus.AWAITING_ATTESTATION: {
         OffchainJobStatus.ATTESTED,
         OffchainJobStatus.SETTLEMENT_PENDING,
@@ -95,6 +108,27 @@ class JobLifecycleService:
         if current is OffchainJobStatus.READY_FOR_SCHEDULING:
             return self.transition(current, OffchainJobStatus.SCHEDULING)
         return current
+
+    def mark_evaluating(self, current: OffchainJobStatus) -> OffchainJobStatus:
+        if current is OffchainJobStatus.SCHEDULING:
+            return self.transition(current, OffchainJobStatus.EVALUATING)
+        if current is OffchainJobStatus.EVALUATING:
+            return current
+        raise InvalidLifecycleTransition(f"Cannot mark job as evaluating from {current.value}")
+
+    def mark_ready_for_attestation(self, current: OffchainJobStatus) -> OffchainJobStatus:
+        if current is OffchainJobStatus.EVALUATING:
+            return self.transition(current, OffchainJobStatus.READY_FOR_ATTESTATION)
+        if current is OffchainJobStatus.READY_FOR_ATTESTATION:
+            return current
+        raise InvalidLifecycleTransition(f"Cannot mark job ready for attestation from {current.value}")
+
+    def mark_evaluation_failed(self, current: OffchainJobStatus) -> OffchainJobStatus:
+        if current is OffchainJobStatus.EVALUATING:
+            return self.transition(current, OffchainJobStatus.EVALUATION_FAILED)
+        if current is OffchainJobStatus.EVALUATION_FAILED:
+            return current
+        raise InvalidLifecycleTransition(f"Cannot mark job evaluation failed from {current.value}")
 
     def mark_sync_failure(self, current: OffchainJobStatus) -> OffchainJobStatus:
         if current in {OffchainJobStatus.FINALIZED, OffchainJobStatus.FAILED}:

@@ -11,6 +11,8 @@ from orchestrator.app.application.services.simple_node_selection_strategy import
 from orchestrator.app.infrastructure.blockchain.client import TrainingMarketplaceClient
 from orchestrator.app.infrastructure.db.repositories import (
     SqlAlchemyArtifactRepository,
+    SqlAlchemyEvaluationReportRepository,
+    SqlAlchemyEvaluationTaskRepository,
     SqlAlchemyJobEventRepository,
     SqlAlchemyJobRepository,
     SqlAlchemyNodeRepository,
@@ -47,8 +49,14 @@ class AppContainer:
     def training_task_repository(self, session: Session) -> SqlAlchemyTrainingTaskRepository:
         return SqlAlchemyTrainingTaskRepository(session)
 
+    def evaluation_task_repository(self, session: Session) -> SqlAlchemyEvaluationTaskRepository:
+        return SqlAlchemyEvaluationTaskRepository(session)
+
     def artifact_repository(self, session: Session) -> SqlAlchemyArtifactRepository:
         return SqlAlchemyArtifactRepository(session)
+
+    def evaluation_report_repository(self, session: Session) -> SqlAlchemyEvaluationReportRepository:
+        return SqlAlchemyEvaluationReportRepository(session)
 
 
 def create_container(

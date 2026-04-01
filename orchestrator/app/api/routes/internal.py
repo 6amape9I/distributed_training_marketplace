@@ -2,9 +2,24 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from orchestrator.app.api.deps import get_orchestration_coordinator, get_task_dispatch_service
-from orchestrator.app.application.dto import ReconcileResponse, SyncResponse, TaskSeedResponse
-from orchestrator.app.application.services import OrchestrationCoordinator, TaskDispatchError, TaskDispatchService
+from orchestrator.app.api.deps import (
+    get_evaluation_dispatch_service,
+    get_orchestration_coordinator,
+    get_task_dispatch_service,
+)
+from orchestrator.app.application.dto import (
+    EvaluationTaskSeedResponse,
+    ReconcileResponse,
+    SyncResponse,
+    TaskSeedResponse,
+)
+from orchestrator.app.application.services import (
+    EvaluationDispatchError,
+    EvaluationDispatchService,
+    OrchestrationCoordinator,
+    TaskDispatchError,
+    TaskDispatchService,
+)
 
 router = APIRouter(prefix="/internal", tags=["internal"])
 
@@ -40,3 +55,19 @@ def seed_demo_tasks_for_job(
     except TaskDispatchError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return TaskSeedResponse(job_id=job_id, task_ids=[task.task_id for task in tasks], artifact_ids=artifact_ids)
+
+
+@router.post("/evaluations/seed-for-job/{job_id}", response_model=EvaluationTaskSeedResponse)
+def seed_evaluation_tasks_for_job(
+    job_id: int,
+    service: Annotated[EvaluationDispatchService, Depends(get_evaluation_dispatch_service)],
+) -> EvaluationTaskSeedResponse:
+    try:
+        tasks, artifact_ids = service.seed_for_job(job_id)
+    except EvaluationDispatchError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    return EvaluationTaskSeedResponse(
+        job_id=job_id,
+        evaluation_task_ids=[task.evaluation_task_id for task in tasks],
+        artifact_ids=artifact_ids,
+    )

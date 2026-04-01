@@ -1,0 +1,16 @@
+from collections.abc import Sequence
+from typing import Protocol
+
+from orchestrator.app.domain.entities import EvaluationReport
+
+
+class EvaluationReportRepository(Protocol):
+    def get(self, report_id: str) -> EvaluationReport | None: ...
+
+    def list(self) -> Sequence[EvaluationReport]: ...
+
+    def list_by_job(self, job_id: int) -> Sequence[EvaluationReport]: ...
+
+    def list_by_evaluation_task(self, evaluation_task_id: str) -> Sequence[EvaluationReport]: ...
+
+    def upsert(self, report: EvaluationReport) -> EvaluationReport: ...

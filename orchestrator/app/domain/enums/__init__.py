@@ -1,4 +1,5 @@
 from .artifact_kind import ArtifactKind
+from .evaluation_task_status import EvaluationTaskStatus
 from .node_role import NodeRole
 from .node_status import NodeStatus
 from .offchain_job_status import OffchainJobStatus
@@ -8,6 +9,7 @@ from .training_task_type import TrainingTaskType
 
 __all__ = [
     "ArtifactKind",
+    "EvaluationTaskStatus",
     "NodeRole",
     "NodeStatus",
     "OffchainJobStatus",

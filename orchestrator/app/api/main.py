@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from orchestrator.app.api.routes.artifacts import router as artifacts_router
+from orchestrator.app.api.routes.evaluator_tasks import router as evaluator_tasks_router
 from orchestrator.app.api.routes.health import router as health_router
 from orchestrator.app.api.routes.internal import router as internal_router
 from orchestrator.app.api.routes.jobs import router as jobs_router
@@ -32,7 +33,7 @@ def create_app(
     container = create_container(resolved_settings, blockchain_client=blockchain_client)
     app = FastAPI(
         title="distributed-training-marketplace-orchestrator",
-        version="0.2.0",
+        version="0.3.0",
         lifespan=lifespan,
     )
     app.state.container = container
@@ -42,5 +43,6 @@ def create_app(
     app.include_router(jobs_router)
     app.include_router(nodes_router)
     app.include_router(trainer_tasks_router)
+    app.include_router(evaluator_tasks_router)
     app.include_router(internal_router)
     return app

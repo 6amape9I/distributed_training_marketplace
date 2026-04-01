@@ -52,12 +52,22 @@ PYTHONPATH=. .venv/bin/uvicorn trainer_agent.app.main:create_app --factory --hos
 
 Start additional trainers with different `TRAINER_NODE_ID`, `TRAINER_PUBLIC_URL`, and `LOCAL_WORKSPACE_PATH` values.
 
+## Run evaluators
+```bash
+export EVALUATOR_NODE_ID=evaluator-1
+export ORCHESTRATOR_BASE_URL=http://127.0.0.1:8000
+export EVALUATOR_PUBLIC_URL=http://127.0.0.1:8020
+export LOCAL_WORKSPACE_PATH=./data/evaluator-1
+PYTHONPATH=. .venv/bin/uvicorn evaluator_agent.app.main:create_app --factory --host 0.0.0.0 --port 8020
+```
+
 ## Python test suite
 ```bash
 make python-test
 ```
 
 ## Notes
-- Stage 3 includes real trainer execution and artifact movement.
-- Stage 3 still does not include evaluator execution, productized aggregation, or settlement finalization from training results.
+- Stage 4 includes real evaluator execution and evaluation report artifacts.
+- Job lifecycle now extends through `evaluating`, `ready_for_attestation`, and `evaluation_failed`.
+- Contract ABI and on-chain flows remain unchanged in Stage 4.
 - The canonical Codex/project guidance lives in `docs/codex/`.

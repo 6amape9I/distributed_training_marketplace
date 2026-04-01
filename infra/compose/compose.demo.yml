@@ -58,3 +58,18 @@ services:
       - "8011:8011"
     depends_on:
       - orchestrator
+
+  evaluator-1:
+    build:
+      context: ../..
+      dockerfile: infra/docker/evaluator.Dockerfile
+    env_file:
+      - ../env/evaluator.env.example
+    environment:
+      EVALUATOR_NODE_ID: evaluator-1
+      EVALUATOR_PUBLIC_URL: http://evaluator-1:8020
+      LOCAL_WORKSPACE_PATH: /app/data/evaluator-1
+    ports:
+      - "8020:8020"
+    depends_on:
+      - orchestrator

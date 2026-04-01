@@ -5,16 +5,18 @@
 ## Current repository state
 - Stage 1 is complete: generic on-chain trust and settlement layer in `contracts/`.
 - Stage 2 is complete: orchestrator core with persistence, lifecycle handling, blockchain sync, node registry, and DB-backed API.
-- Stage 3 is now implemented: trainer runtime, DB-backed training tasks, artifact upload/download, real local `local_fit` execution, and multi-trainer demo scaffolding.
+- Stage 3 is complete: trainer runtime, DB-backed training tasks, artifact upload/download, and real local `local_fit` execution.
+- Stage 4 is now implemented: evaluator runtime, evaluation tasks/reports, metric computation, and lifecycle transitions into `ready_for_attestation` or `evaluation_failed`.
 
 ## Architecture boundary
-The blockchain layer is limited to trust and settlement concerns. Training, task dispatch, artifacts, and trainer execution remain off-chain. Stage 3 still does not include evaluator execution, global aggregation as a product flow, or blockchain finalization from training outputs.
+The blockchain layer remains limited to trust and settlement. Training, evaluation, tasks, artifacts, and runtime coordination stay off-chain. Stage 4 still does not include on-chain attestation writes, final settlement execution, or a production aggregation framework.
 
 ## Key directories
 - `contracts/`: canonical Foundry workspace for the trust layer.
 - `docs/`: architecture, MVP, setup, and Codex guidance.
-- `orchestrator/`: FastAPI orchestrator, persistence, sync, node registry, task APIs, and artifact services.
+- `orchestrator/`: FastAPI orchestrator, persistence, sync, node registry, trainer/evaluator task APIs, and artifact services.
 - `trainer_agent/`: trainer worker service with registration, heartbeat, task claiming, and local training execution.
+- `evaluator_agent/`: evaluator worker service with registration, heartbeat, evaluation task claiming, and metric computation.
 - `shared/`: shared Python schemas and hashing helpers.
 - `infra/`: Docker Compose, env examples, Dockerfiles, and helper scripts.
 
@@ -46,4 +48,18 @@ export LOCAL_WORKSPACE_PATH=./data/trainer-1
 PYTHONPATH=. .venv/bin/uvicorn trainer_agent.app.main:create_app --factory --host 0.0.0.0 --port 8010
 ```
 
-The canonical project documentation lives under `docs/`. Start with `docs/setup/development.md`, `docs/setup/local-demo.md`, and `docs/mvp/stage-3-plan.md`.
+## Run an evaluator locally
+```bash
+export EVALUATOR_NODE_ID=evaluator-1
+export ORCHESTRATOR_BASE_URL=http://127.0.0.1:8000
+export EVALUATOR_PUBLIC_URL=http://127.0.0.1:8020
+export LOCAL_WORKSPACE_PATH=./data/evaluator-1
+PYTHONPATH=. .venv/bin/uvicorn evaluator_agent.app.main:create_app --factory --host 0.0.0.0 --port 8020
+```
+
+## Verification
+- `make python-test` now covers orchestrator, trainer, and evaluator suites.
+- `trainer_agent/app/tests/test_multi_runtime_smoke.py` closes the Stage 3 multi-trainer caveat with an explicit two-runtime smoke test.
+- `docs/` is the canonical documentation tree.
+
+Start with `docs/setup/development.md`, `docs/setup/local-demo.md`, and `docs/mvp/stage-4-plan.md`.

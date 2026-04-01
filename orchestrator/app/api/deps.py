@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session
 
 from orchestrator.app.application.services import (
     ArtifactService,
+    EvaluationClaimService,
+    EvaluationCompletionService,
+    EvaluationDispatchService,
     JobSyncService,
     NodeLivenessService,
     NodeRegistryService,
@@ -110,6 +113,42 @@ def get_task_dispatch_service(
         jobs=container.job_repository(session),
         nodes=container.node_repository(session),
         tasks=container.training_task_repository(session),
+        artifacts=artifact_service,
+    )
+
+
+def get_evaluation_claim_service(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+) -> EvaluationClaimService:
+    return EvaluationClaimService(
+        tasks=container.evaluation_task_repository(session),
+        nodes=container.node_repository(session),
+    )
+
+
+def get_evaluation_completion_service(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+) -> EvaluationCompletionService:
+    return EvaluationCompletionService(
+        tasks=container.evaluation_task_repository(session),
+        artifacts=container.artifact_repository(session),
+        reports=container.evaluation_report_repository(session),
+        jobs=container.job_repository(session),
+    )
+
+
+def get_evaluation_dispatch_service(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+    artifact_service: ArtifactService = Depends(get_artifact_service),
+) -> EvaluationDispatchService:
+    return EvaluationDispatchService(
+        jobs=container.job_repository(session),
+        nodes=container.node_repository(session),
+        training_tasks=container.training_task_repository(session),
+        evaluation_tasks=container.evaluation_task_repository(session),
         artifacts=artifact_service,
     )
 
