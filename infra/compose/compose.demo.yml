@@ -1,0 +1,39 @@
+services:
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    command: anvil --host 0.0.0.0 --port 8545
+    ports:
+      - "8545:8545"
+
+  orchestrator:
+    build:
+      context: ../..
+      dockerfile: infra/docker/orchestrator.Dockerfile
+    env_file:
+      - ../env/orchestrator.env.example
+    ports:
+      - "8000:8000"
+    depends_on:
+      - anvil
+
+  trainer:
+    build:
+      context: ../..
+      dockerfile: infra/docker/trainer.Dockerfile
+    env_file:
+      - ../env/trainer.env.example
+    ports:
+      - "8010:8010"
+    depends_on:
+      - orchestrator
+
+  evaluator:
+    build:
+      context: ../..
+      dockerfile: infra/docker/evaluator.Dockerfile
+    env_file:
+      - ../env/evaluator.env.example
+    ports:
+      - "8020:8020"
+    depends_on:
+      - orchestrator

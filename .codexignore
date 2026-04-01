@@ -1,0 +1,39 @@
+# Virtual environments
+.venv/
+venv/
+
+# Python caches
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE / editor
+.idea/
+.vscode/
+
+# Git internals
+.git/
+
+# Foundry generated / dependency paths
+contracts/lib/
+contracts/cache/
+contracts/out/
+contracts/broadcast/
+
+# Node / JS leftovers if they appear later
+node_modules/
+
+# Local runtime data and artifacts
+infra/data/
+infra/tmp/
+artifacts/
+checkpoints/
+logs/
+
+# OS noise
+.DS_Store
+Thumbs.db
