@@ -1,6 +1,6 @@
 # Orchestrator Core
 
-Stage 5 extends the orchestrator into the first real plugin-driven training-plus-evaluation control plane.
+Stage 6 keeps the Stage 5 control plane intact and wraps it in a reproducible local demo stand.
 
 ## Responsibilities
 - mirror contract events into persistent storage;
@@ -45,7 +45,10 @@ PYTHONPATH=. .venv/bin/pytest orchestrator/app/tests trainer_agent/app/tests eva
 - `GET /jobs`
 - `GET /jobs/{job_id}`
 - `GET /jobs/{job_id}/rounds`
+- `GET /jobs/{job_id}/training-tasks`
+- `GET /jobs/{job_id}/evaluation-tasks`
 - `POST /jobs/sync`
+- `GET /rounds`
 - `GET /rounds/{round_id}`
 - `GET /nodes`
 - `GET /nodes/{node_id}`

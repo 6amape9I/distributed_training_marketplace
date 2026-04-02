@@ -4,11 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from orchestrator.app.api.deps import get_db_session, get_job_sync_service, get_round_reconciliation_service
-from orchestrator.app.application.dto import JobDetailResponse, JobSummaryResponse, RoundResponse, SyncResponse
+from orchestrator.app.application.dto import EvaluationTaskResponse, JobDetailResponse, JobSummaryResponse, RoundResponse, SyncResponse, TrainingTaskResponse
 from orchestrator.app.application.services import JobSyncService
 from orchestrator.app.application.services.round_reconciliation_service import RoundReconciliationService
 from orchestrator.app.infrastructure.container import AppContainer
 from orchestrator.app.api.deps import get_container
+from orchestrator.app.api.routes.evaluator_tasks import _to_response as evaluation_task_to_response
+from orchestrator.app.api.routes.trainer_tasks import _to_response as training_task_to_response
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -94,3 +96,27 @@ def list_job_rounds(
         )
         for round_record in service.list_by_job(job_id)
     ]
+
+
+@router.get("/{job_id}/training-tasks", response_model=list[TrainingTaskResponse])
+def list_job_training_tasks(
+    job_id: int,
+    session: Annotated[Session, Depends(get_db_session)],
+    container: Annotated[AppContainer, Depends(get_container)],
+) -> list[TrainingTaskResponse]:
+    job = container.job_repository(session).get(job_id)
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="job not found")
+    return [training_task_to_response(task) for task in container.training_task_repository(session).list_by_job(job_id)]
+
+
+@router.get("/{job_id}/evaluation-tasks", response_model=list[EvaluationTaskResponse])
+def list_job_evaluation_tasks(
+    job_id: int,
+    session: Annotated[Session, Depends(get_db_session)],
+    container: Annotated[AppContainer, Depends(get_container)],
+) -> list[EvaluationTaskResponse]:
+    job = container.job_repository(session).get(job_id)
+    if job is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="job not found")
+    return [evaluation_task_to_response(task) for task in container.evaluation_task_repository(session).list_by_job(job_id)]

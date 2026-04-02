@@ -1,9 +1,18 @@
+name: dtm-demo
+
 services:
   anvil:
     image: ghcr.io/foundry-rs/foundry:latest
     command: anvil --host 0.0.0.0 --port 8545
     ports:
       - "8545:8545"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "cast block-number --rpc-url http://127.0.0.1:8545 >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 2s
 
   postgres:
     image: postgres:16
@@ -13,6 +22,37 @@ services:
       POSTGRES_DB: dtm_orchestrator
     ports:
       - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dtm -d dtm_orchestrator"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  db-migrate:
+    build:
+      context: ../..
+      dockerfile: infra/docker/orchestrator.Dockerfile
+    profiles: ["tools"]
+    env_file:
+      - ../env/orchestrator.env.example
+    command: python -m alembic -c orchestrator/alembic.ini upgrade head
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  foundry:
+    image: ghcr.io/foundry-rs/foundry:latest
+    profiles: ["tools"]
+    working_dir: /workspace/contracts
+    volumes:
+      - ../../:/workspace
+    depends_on:
+      anvil:
+        condition: service_healthy
 
   orchestrator:
     build:
@@ -23,9 +63,24 @@ services:
     command: uvicorn orchestrator.app.api.main:create_app --factory --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
+    volumes:
+      - orchestrator-artifacts:/app/artifacts
+    restart: unless-stopped
     depends_on:
-      - anvil
-      - postgres
+      anvil:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).status == 200 else 1)\"",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
   trainer-1:
     build:
@@ -39,8 +94,22 @@ services:
       LOCAL_WORKSPACE_PATH: /app/data/trainer-1
     ports:
       - "8010:8010"
+    volumes:
+      - trainer-1-workspace:/app/data/trainer-1
+    restart: unless-stopped
     depends_on:
-      - orchestrator
+      orchestrator:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=2).status == 200 else 1)\"",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
   trainer-2:
     build:
@@ -56,8 +125,22 @@ services:
       LOCAL_WORKSPACE_PATH: /app/data/trainer-2
     ports:
       - "8011:8011"
+    volumes:
+      - trainer-2-workspace:/app/data/trainer-2
+    restart: unless-stopped
     depends_on:
-      - orchestrator
+      orchestrator:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8011/health', timeout=2).status == 200 else 1)\"",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
   evaluator-1:
     build:
@@ -71,5 +154,26 @@ services:
       LOCAL_WORKSPACE_PATH: /app/data/evaluator-1
     ports:
       - "8020:8020"
+    volumes:
+      - evaluator-1-workspace:/app/data/evaluator-1
+    restart: unless-stopped
     depends_on:
-      - orchestrator
+      orchestrator:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8020/health', timeout=2).status == 200 else 1)\"",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  postgres-data:
+  orchestrator-artifacts:
+  trainer-1-workspace:
+  trainer-2-workspace:
+  evaluator-1-workspace:

@@ -29,6 +29,15 @@ def _to_response(round_record: Round) -> RoundResponse:
     )
 
 
+@router.get("", response_model=list[RoundResponse])
+def list_rounds(
+    service: Annotated[RoundReconciliationService, Depends(get_round_reconciliation_service)],
+    job_id: int | None = None,
+) -> list[RoundResponse]:
+    records = service.list_by_job(job_id) if job_id is not None else service.list_all()
+    return [_to_response(round_record) for round_record in records]
+
+
 @router.get("/{round_id}", response_model=RoundResponse)
 def get_round(
     round_id: str,

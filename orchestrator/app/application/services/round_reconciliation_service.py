@@ -34,6 +34,9 @@ class RoundReconciliationService:
     def get(self, round_id: str) -> Round | None:
         return self.rounds.get(round_id)
 
+    def list_all(self) -> list[Round]:
+        return list(self.rounds.list())
+
     def list_by_job(self, job_id: int) -> list[Round]:
         return list(self.rounds.list_by_job(job_id))
 
