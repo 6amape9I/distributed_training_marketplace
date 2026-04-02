@@ -45,6 +45,13 @@ For the canonical Stage 6 demo stand, the orchestrator runs inside Compose and t
 
 That demo path does not expose chain or DB ports on the host.
 
+For the canonical Stage 7 public demo path, the orchestrator runs locally and points at:
+- `Base Sepolia` RPC
+- `chain_id=84532`
+- a contract address produced by `make public-deploy`
+
+On-chain writes for attestation/finalization/withdrawal stay in `infra/scripts/public-*.sh`; the orchestrator remains a sync and control-plane service.
+
 ## API surface
 - `GET /health`
 - `GET /status`

@@ -9,6 +9,7 @@
 - Stage 4 is now implemented: evaluator runtime, evaluation tasks/reports, metric computation, and lifecycle transitions into `ready_for_attestation` or `evaluation_failed`.
 - Stage 5 is now implemented: round persistence, protocol plugin wiring, weighted aggregation, and plugin-driven end-to-end training plus evaluation.
 - Stage 6 is now implemented: canonical Docker Compose demo stack, demo helper scripts, startup/readiness checks, and a reproducible local demo path.
+- Stage 7 now adds a canonical public testnet path for Base Sepolia: public deploy/job/sync/attestation/finalization/withdraw helper commands, deterministic attestation and settlement payload hashing, and a public demo runbook.
 
 ## Architecture boundary
 The blockchain layer remains limited to trust and settlement. Training, rounds, aggregation, evaluation, tasks, artifacts, and runtime coordination stay off-chain. Stage 5 still does not include on-chain attestation writes, final settlement execution, or Byzantine-robust aggregation.
@@ -61,6 +62,34 @@ One-command verification path from a fresh state:
 make demo-smoke
 ```
 
+## Canonical public testnet path
+Stage 7 defines one public demo target: `Base Sepolia` (`chain_id=84532`).
+
+The public path uses:
+- local orchestrator + local trainer/evaluator processes
+- a public Base Sepolia RPC for trust-layer state
+- explicit helper commands for on-chain writes
+
+Canonical command sequence:
+
+```bash
+make public-check-env
+make public-deploy
+make public-create-job
+make public-fund-job
+make public-sync-job
+make public-start-flow
+make public-submit-attestation
+make public-finalize-job
+make public-withdraw
+make public-status
+```
+
+Defaults:
+- success settlement policy is `90% provider payout / 10% requester refund`
+- attestation/finalization are only run for the success path where the off-chain result reaches `ready_for_attestation`
+- runtime state is stored under `tmp/public-state/`
+
 ## Low-level local runs
 The manual single-process commands below remain available for debugging, but they are no longer the canonical demo path.
 
@@ -98,6 +127,7 @@ PYTHONPATH=. .venv/bin/uvicorn evaluator_agent.app.main:create_app --factory --h
 - `orchestrator/app/tests/test_protocol_round_flow.py` proves the Stage 5 path: protocol run -> trainer tasks -> aggregation -> evaluator task -> final lifecycle state.
 - `make demo-smoke` is the Stage 6 operational path for the Compose demo stand.
 - The live Stage 6 path has been verified with `make demo-clean && make demo-up && make demo-init && make demo-start-flow && make demo-status`.
+- `shared/python/tests/test_public_demo.py` covers deterministic Stage 7 attestation/settlement hashing and the `90/10` success settlement split.
 - `docs/` is the canonical documentation tree.
 
-Start with `docs/setup/local-demo.md`, `docs/setup/development.md`, and `docs/mvp/stage-6-plan.md`.
+Start with `docs/setup/local-demo.md`, `docs/setup/public-demo.md`, `docs/setup/development.md`, and `docs/mvp/stage-7-plan.md`.

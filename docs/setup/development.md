@@ -83,12 +83,44 @@ Demo networking details:
 - `anvil` and `postgres` are internal-only services in `infra/compose/compose.demo.yml`;
 - the canonical demo path does not depend on host `forge`, `cast`, or host access to `127.0.0.1:8545`.
 
+## Canonical public workflow
+Stage 7 adds the first public trust-layer path and fixes one public target:
+- `Base Sepolia`
+- `chain_id=84532`
+
+Public helper commands:
+
+```bash
+make public-check-env
+make public-deploy
+make public-create-job
+make public-fund-job
+make public-sync-job
+make public-start-flow
+make public-submit-attestation
+make public-finalize-job
+make public-withdraw
+make public-status
+```
+
+Public env examples:
+- `infra/env/public-demo.env.example`
+- `infra/env/orchestrator.public.env.example`
+
+Public runtime assumptions:
+- orchestrator, `trainer-1`, `trainer-2`, and `evaluator-1` run locally;
+- chain state is external on Base Sepolia;
+- on-chain writes stay explicit in helper scripts, not hidden inside runtime side effects.
+
 ## Notes
 - Stage 5 adds explicit `round` persistence and a plugin-driven execution path via `fedavg_like_v1`.
 - The canonical off-chain flow is now `protocol run -> trainer tasks -> aggregation -> evaluation -> lifecycle reconcile`.
 - Legacy manual routes `/internal/tasks/seed-for-job/{job_id}` and `/internal/evaluations/seed-for-job/{job_id}` remain only for earlier-stage smoke paths.
 - Stage 6 adds the canonical Compose demo stand under `infra/compose/compose.demo.yml` and `infra/scripts/demo-*.sh`.
 - `make demo-init` writes demo runtime state to `tmp/demo-state/current-run.env` for later steps.
+- Stage 7 adds the canonical Base Sepolia helper surface under `infra/scripts/public-*.sh`.
+- `make public-deploy` and follow-up commands write public runtime state to `tmp/public-state/current-run.env`.
+- `make public-status` combines orchestrator API state, direct on-chain job reads, tx hashes, and balance checks.
 - Job lifecycle now extends through `evaluating`, `ready_for_attestation`, and `evaluation_failed`.
-- Contract ABI and on-chain flows remain unchanged in Stage 6.
+- Contract ABI remains unchanged in Stage 7; public integration wraps the existing job/attestation/finalization/withdraw flow.
 - The canonical Codex/project guidance lives in `docs/codex/`.
