@@ -1,8 +1,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
 from orchestrator.app.api.deps import (
+    get_db_session,
     get_evaluation_dispatch_service,
     get_orchestration_coordinator,
     get_protocol_run_service,
@@ -33,8 +35,11 @@ router = APIRouter(prefix="/internal", tags=["internal"])
 @router.post("/sync/run-once", response_model=SyncResponse)
 def sync_run_once(
     coordinator: Annotated[OrchestrationCoordinator, Depends(get_orchestration_coordinator)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> SyncResponse:
     result = coordinator.run_sync_once()
+    if session is not None:
+        session.commit()
     return SyncResponse(
         from_block=result.from_block,
         to_block=result.to_block,
@@ -47,19 +52,26 @@ def sync_run_once(
 @router.post("/lifecycle/reconcile", response_model=ReconcileResponse)
 def reconcile_lifecycle(
     coordinator: Annotated[OrchestrationCoordinator, Depends(get_orchestration_coordinator)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> ReconcileResponse:
-    return ReconcileResponse(changed_jobs=coordinator.reconcile_lifecycle())
+    changed_jobs = coordinator.reconcile_lifecycle()
+    if session is not None:
+        session.commit()
+    return ReconcileResponse(changed_jobs=changed_jobs)
 
 
 @router.post("/tasks/seed-for-job/{job_id}", response_model=TaskSeedResponse)
 def seed_demo_tasks_for_job(
     job_id: int,
     service: Annotated[TaskDispatchService, Depends(get_task_dispatch_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> TaskSeedResponse:
     try:
         tasks, artifact_ids = service.seed_demo_tasks_for_job(job_id)
     except TaskDispatchError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    if session is not None:
+        session.commit()
     return TaskSeedResponse(job_id=job_id, task_ids=[task.task_id for task in tasks], artifact_ids=artifact_ids)
 
 
@@ -67,11 +79,14 @@ def seed_demo_tasks_for_job(
 def seed_evaluation_tasks_for_job(
     job_id: int,
     service: Annotated[EvaluationDispatchService, Depends(get_evaluation_dispatch_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> EvaluationTaskSeedResponse:
     try:
         tasks, artifact_ids = service.seed_for_job(job_id)
     except EvaluationDispatchError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    if session is not None:
+        session.commit()
     return EvaluationTaskSeedResponse(
         job_id=job_id,
         evaluation_task_ids=[task.evaluation_task_id for task in tasks],
@@ -83,11 +98,14 @@ def seed_evaluation_tasks_for_job(
 def start_protocol_run_for_job(
     job_id: int,
     service: Annotated[ProtocolRunService, Depends(get_protocol_run_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> ProtocolRunResponse:
     try:
         result = service.start_for_job(job_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    if session is not None:
+        session.commit()
     return ProtocolRunResponse(
         job_id=job_id,
         round_id=result.round_record.round_id,
@@ -100,11 +118,14 @@ def start_protocol_run_for_job(
 def reconcile_round(
     round_id: str,
     service: Annotated[RoundReconciliationService, Depends(get_round_reconciliation_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> RoundReconcileResponse:
     try:
         round_record = service.reconcile(round_id)
     except RoundReconciliationError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    if session is not None:
+        session.commit()
     return RoundReconcileResponse(
         round_id=round_record.round_id,
         status=round_record.status.value,

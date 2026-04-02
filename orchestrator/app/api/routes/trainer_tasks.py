@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
-from orchestrator.app.api.deps import get_task_claim_service, get_task_completion_service
+from orchestrator.app.api.deps import get_db_session, get_task_claim_service, get_task_completion_service
 from orchestrator.app.application.dto import (
     TaskClaimRequest,
     TaskCompleteRequest,
@@ -51,13 +52,18 @@ def _to_response(task: TrainingTask) -> TrainingTaskResponse:
 def claim_task(
     payload: TaskClaimRequest,
     service: Annotated[TaskClaimService, Depends(get_task_claim_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> TrainingTaskResponse | None:
     try:
         task = service.claim_next(payload.trainer_node_id)
     except TaskClaimError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     if task is None:
+        if session is not None:
+            session.commit()
         return None
+    if session is not None:
+        session.commit()
     return _to_response(task)
 
 
@@ -66,9 +72,13 @@ def start_task(
     task_id: str,
     payload: TaskStartRequest,
     service: Annotated[TaskCompletionService, Depends(get_task_completion_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> TrainingTaskResponse:
     try:
-        return _to_response(service.start(task_id, payload.trainer_node_id))
+        task = service.start(task_id, payload.trainer_node_id)
+        if session is not None:
+            session.commit()
+        return _to_response(task)
     except TaskCompletionError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
@@ -78,11 +88,13 @@ def complete_task(
     task_id: str,
     payload: TaskCompleteRequest,
     service: Annotated[TaskCompletionService, Depends(get_task_completion_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> TrainingTaskResponse:
     try:
-        return _to_response(
-            service.complete(task_id, payload.trainer_node_id, payload.result_artifact_id, payload.report_artifact_id)
-        )
+        task = service.complete(task_id, payload.trainer_node_id, payload.result_artifact_id, payload.report_artifact_id)
+        if session is not None:
+            session.commit()
+        return _to_response(task)
     except TaskCompletionError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
@@ -92,9 +104,13 @@ def fail_task(
     task_id: str,
     payload: TaskFailRequest,
     service: Annotated[TaskCompletionService, Depends(get_task_completion_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> TrainingTaskResponse:
     try:
-        return _to_response(service.fail(task_id, payload.trainer_node_id, payload.failure_reason))
+        task = service.fail(task_id, payload.trainer_node_id, payload.failure_reason)
+        if session is not None:
+            session.commit()
+        return _to_response(task)
     except TaskCompletionError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 

@@ -4,8 +4,9 @@ import base64
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
-from orchestrator.app.api.deps import get_artifact_service
+from orchestrator.app.api.deps import get_artifact_service, get_db_session
 from orchestrator.app.application.dto import ArtifactContentResponse, ArtifactResponse, ArtifactUploadRequest
 from orchestrator.app.application.services import ArtifactNotFoundError, ArtifactService
 
@@ -16,6 +17,7 @@ router = APIRouter(prefix="/artifacts", tags=["artifacts"])
 def upload_artifact(
     payload: ArtifactUploadRequest,
     service: Annotated[ArtifactService, Depends(get_artifact_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> ArtifactResponse:
     artifact = service.upload_base64(
         kind=payload.kind,
@@ -26,6 +28,8 @@ def upload_artifact(
         job_id=payload.job_id,
         task_id=payload.task_id,
     )
+    if session is not None:
+        session.commit()
     return ArtifactResponse(
         artifact_id=artifact.artifact_id,
         kind=artifact.kind.value,

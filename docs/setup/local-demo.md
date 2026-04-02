@@ -6,7 +6,9 @@ All commands below are written from the repository root. Stage 6 makes `infra/co
 - Docker with `docker compose`
 - `curl`
 - `python3`
-- enough free ports for `8545`, `5432`, `8000`, `8010`, `8011`, `8020`
+- enough free host ports for `8000`, `8010`, `8011`, `8020`
+
+The demo does not publish `anvil` or `postgres` to the host. Chain and DB traffic stay inside the Compose network.
 
 ## 1. Start the stand
 ```bash
@@ -23,17 +25,26 @@ This brings up:
 
 It also runs DB migrations and waits for `/health` readiness.
 
+Published host endpoints:
+- `http://127.0.0.1:8000` -> orchestrator
+- `http://127.0.0.1:8010` -> trainer-1
+- `http://127.0.0.1:8011` -> trainer-2
+- `http://127.0.0.1:8020` -> evaluator-1
+
 ## 2. Initialize the demo
 ```bash
 make demo-init
 ```
 
 This step:
-- deploys `TrainingMarketplace` to the fresh local chain;
+- deploys `TrainingMarketplace` inside the `anvil` container to the fresh local chain;
 - creates and funds demo job `1` on-chain;
 - syncs it into the orchestrator;
 - waits for both trainers and the evaluator to register;
 - advances the job into `scheduling`.
+
+`make demo-init` assumes a fresh demo state and verifies the deterministic local contract address:
+- `0x5FbDB2315678afecb367f032d93F642f64180aa3`
 
 ## 3. Run the protocol flow
 ```bash
@@ -88,4 +99,6 @@ make demo-clean
 ## Notes
 - The demo assumes a fresh chain and fresh Compose volumes.
 - `make demo-init` will fail fast if the chain is not fresh enough to deploy to the expected deterministic local address.
+- The demo runtime metadata is stored in `tmp/demo-state/current-run.env`.
+- If you need to inspect chain state directly, use `docker compose -f infra/compose/compose.demo.yml exec anvil ...` instead of host `http://127.0.0.1:8545`.
 - The older multi-shell manual flow is now a low-level fallback for debugging, not the recommended demo path.

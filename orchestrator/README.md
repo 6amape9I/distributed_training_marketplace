@@ -39,6 +39,12 @@ PYTHONPATH=. .venv/bin/uvicorn orchestrator.app.api.main:create_app --factory --
 PYTHONPATH=. .venv/bin/pytest orchestrator/app/tests trainer_agent/app/tests evaluator_agent/app/tests
 ```
 
+For the canonical Stage 6 demo stand, the orchestrator runs inside Compose and talks to:
+- `postgres` at the internal Compose hostname
+- `anvil` at the internal Compose hostname
+
+That demo path does not expose chain or DB ports on the host.
+
 ## API surface
 - `GET /health`
 - `GET /status`

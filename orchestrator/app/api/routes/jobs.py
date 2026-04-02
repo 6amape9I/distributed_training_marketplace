@@ -63,8 +63,13 @@ def get_job(
 
 
 @router.post("/sync", response_model=SyncResponse)
-def sync_jobs(sync_service: Annotated[JobSyncService, Depends(get_job_sync_service)]) -> SyncResponse:
+def sync_jobs(
+    sync_service: Annotated[JobSyncService, Depends(get_job_sync_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
+) -> SyncResponse:
     result = sync_service.run_once()
+    if session is not None:
+        session.commit()
     return SyncResponse(
         from_block=result.from_block,
         to_block=result.to_block,

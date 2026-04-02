@@ -60,6 +60,7 @@ def get_node(
 def register_node(
     payload: NodeRegistrationRequest,
     service: Annotated[NodeRegistryService, Depends(get_node_registry_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> NodeResponse:
     node = service.register(
         node_id=payload.node_id,
@@ -67,6 +68,8 @@ def register_node(
         endpoint_url=str(payload.endpoint_url),
         capabilities=payload.capabilities,
     )
+    if session is not None:
+        session.commit()
     return NodeResponse(
         node_id=node.node_id,
         role=node.role.value,
@@ -82,10 +85,13 @@ def register_node(
 def heartbeat_node(
     payload: NodeHeartbeatRequest,
     service: Annotated[NodeRegistryService, Depends(get_node_registry_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> NodeResponse:
     node = service.heartbeat(payload.node_id)
     if node is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="node not found")
+    if session is not None:
+        session.commit()
     return NodeResponse(
         node_id=node.node_id,
         role=node.role.value,

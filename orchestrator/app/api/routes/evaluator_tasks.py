@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
 
-from orchestrator.app.api.deps import get_evaluation_claim_service, get_evaluation_completion_service
+from orchestrator.app.api.deps import get_db_session, get_evaluation_claim_service, get_evaluation_completion_service
 from orchestrator.app.application.dto import (
     EvaluationTaskClaimRequest,
     EvaluationTaskCompleteRequest,
@@ -48,13 +49,18 @@ def _to_response(task: EvaluationTask) -> EvaluationTaskResponse:
 def claim_evaluation_task(
     payload: EvaluationTaskClaimRequest,
     service: Annotated[EvaluationClaimService, Depends(get_evaluation_claim_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> EvaluationTaskResponse | None:
     try:
         task = service.claim_next(payload.evaluator_node_id)
     except EvaluationClaimError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     if task is None:
+        if session is not None:
+            session.commit()
         return None
+    if session is not None:
+        session.commit()
     return _to_response(task)
 
 
@@ -63,9 +69,13 @@ def start_evaluation_task(
     evaluation_task_id: str,
     payload: EvaluationTaskStartRequest,
     service: Annotated[EvaluationCompletionService, Depends(get_evaluation_completion_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> EvaluationTaskResponse:
     try:
-        return _to_response(service.start(evaluation_task_id, payload.evaluator_node_id))
+        task = service.start(evaluation_task_id, payload.evaluator_node_id)
+        if session is not None:
+            session.commit()
+        return _to_response(task)
     except EvaluationCompletionError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
@@ -75,19 +85,21 @@ def complete_evaluation_task(
     evaluation_task_id: str,
     payload: EvaluationTaskCompleteRequest,
     service: Annotated[EvaluationCompletionService, Depends(get_evaluation_completion_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> EvaluationTaskResponse:
     try:
-        return _to_response(
-            service.complete(
-                evaluation_task_id,
-                payload.evaluator_node_id,
-                payload.report_artifact_id,
-                payload.metrics_json,
-                payload.sample_count,
-                payload.acceptance_decision,
-                payload.target_model_digest,
-            )
+        task = service.complete(
+            evaluation_task_id,
+            payload.evaluator_node_id,
+            payload.report_artifact_id,
+            payload.metrics_json,
+            payload.sample_count,
+            payload.acceptance_decision,
+            payload.target_model_digest,
         )
+        if session is not None:
+            session.commit()
+        return _to_response(task)
     except EvaluationCompletionError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
@@ -97,9 +109,13 @@ def fail_evaluation_task(
     evaluation_task_id: str,
     payload: EvaluationTaskFailRequest,
     service: Annotated[EvaluationCompletionService, Depends(get_evaluation_completion_service)],
+    session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> EvaluationTaskResponse:
     try:
-        return _to_response(service.fail(evaluation_task_id, payload.evaluator_node_id, payload.failure_reason))
+        task = service.fail(evaluation_task_id, payload.evaluator_node_id, payload.failure_reason)
+        if session is not None:
+            session.commit()
+        return _to_response(task)
     except EvaluationCompletionError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 

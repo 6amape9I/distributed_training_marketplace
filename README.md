@@ -32,7 +32,15 @@ make python-test
 ```
 
 ## Canonical demo path
-Stage 6 makes Docker Compose the primary local demo workflow:
+Stage 6 makes Docker Compose the only canonical local demo workflow. The demo publishes only:
+- `8000` for orchestrator
+- `8010` for `trainer-1`
+- `8011` for `trainer-2`
+- `8020` for `evaluator-1`
+
+`anvil` and `postgres` stay internal to the Compose network. The canonical path does not require host-side `forge`, `cast`, or an externally exposed `8545` / `5432`.
+
+Run:
 
 ```bash
 make demo-up
@@ -41,7 +49,13 @@ make demo-start-flow
 make demo-status
 ```
 
-One-command verification path:
+Expected final state after `make demo-start-flow`:
+- job `1` reaches `ready_for_attestation` or `evaluation_failed`
+- one round exists for the job
+- two trainer tasks are completed
+- one evaluation task is completed
+
+One-command verification path from a fresh state:
 
 ```bash
 make demo-smoke
@@ -83,6 +97,7 @@ PYTHONPATH=. .venv/bin/uvicorn evaluator_agent.app.main:create_app --factory --h
 - `trainer_agent/app/tests/test_multi_runtime_smoke.py` closes the Stage 3 multi-trainer caveat with an explicit two-runtime smoke test.
 - `orchestrator/app/tests/test_protocol_round_flow.py` proves the Stage 5 path: protocol run -> trainer tasks -> aggregation -> evaluator task -> final lifecycle state.
 - `make demo-smoke` is the Stage 6 operational path for the Compose demo stand.
+- The live Stage 6 path has been verified with `make demo-clean && make demo-up && make demo-init && make demo-start-flow && make demo-status`.
 - `docs/` is the canonical documentation tree.
 
 Start with `docs/setup/local-demo.md`, `docs/setup/development.md`, and `docs/mvp/stage-6-plan.md`.

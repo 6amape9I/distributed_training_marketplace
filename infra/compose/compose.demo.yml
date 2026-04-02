@@ -3,7 +3,11 @@ name: dtm-demo
 services:
   anvil:
     image: ghcr.io/foundry-rs/foundry:latest
-    command: anvil --host 0.0.0.0 --port 8545
+    entrypoint: []
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    environment:
+      HOME: /tmp
+    command: ["anvil", "--host", "0.0.0.0", "--port", "8545"]
     working_dir: /workspace/contracts
     volumes:
       - ../../:/workspace

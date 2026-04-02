@@ -78,11 +78,17 @@ make demo-status
 
 Use `make demo-clean` to reset the stand to a fresh deterministic state.
 
+Demo networking details:
+- only `8000`, `8010`, `8011`, and `8020` are published to the host;
+- `anvil` and `postgres` are internal-only services in `infra/compose/compose.demo.yml`;
+- the canonical demo path does not depend on host `forge`, `cast`, or host access to `127.0.0.1:8545`.
+
 ## Notes
 - Stage 5 adds explicit `round` persistence and a plugin-driven execution path via `fedavg_like_v1`.
 - The canonical off-chain flow is now `protocol run -> trainer tasks -> aggregation -> evaluation -> lifecycle reconcile`.
 - Legacy manual routes `/internal/tasks/seed-for-job/{job_id}` and `/internal/evaluations/seed-for-job/{job_id}` remain only for earlier-stage smoke paths.
 - Stage 6 adds the canonical Compose demo stand under `infra/compose/compose.demo.yml` and `infra/scripts/demo-*.sh`.
+- `make demo-init` writes demo runtime state to `tmp/demo-state/current-run.env` for later steps.
 - Job lifecycle now extends through `evaluating`, `ready_for_attestation`, and `evaluation_failed`.
 - Contract ABI and on-chain flows remain unchanged in Stage 6.
 - The canonical Codex/project guidance lives in `docs/codex/`.
