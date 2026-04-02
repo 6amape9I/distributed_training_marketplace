@@ -37,3 +37,13 @@ def test_evaluation_executor_produces_metrics_and_acceptance() -> None:
     assert artifacts.acceptance_decision is True
     assert artifacts.target_model_digest
     assert b'"acceptance_decision": true' in artifacts.report_payload
+
+
+def test_evaluation_executor_prefers_manifest_feature_scales() -> None:
+    executor = EvaluationExecutor()
+    scales = executor._resolve_feature_scales(  # type: ignore[attr-defined]
+        {"feature_scales": [5.0, 6.0, 7.0]},
+        [{"features": [1.0, 2.0, 3.0], "label": 1}],
+        3,
+    )
+    assert scales == [5.0, 6.0, 7.0]

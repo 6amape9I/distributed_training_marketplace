@@ -15,13 +15,13 @@ class ProtocolRunService:
         self.protocols = protocols
         self.default_protocol_name = default_protocol_name
 
-    def start_for_job(self, job_id: int) -> ProtocolRunResult:
+    def start_for_job(self, job_id: int, protocol_name: str | None = None) -> ProtocolRunResult:
         job = self.jobs.get(job_id)
         if job is None:
             raise ProtocolRunError("job not found")
         if job.offchain_status != OffchainJobStatus.SCHEDULING:
             raise ProtocolRunError("job is not ready for protocol execution")
-        protocol = self.protocols.get(self.default_protocol_name)
+        protocol = self.protocols.get(protocol_name or self.default_protocol_name)
         return protocol.start_run_for_job(job_id)
 
     def mark_job_evaluating(self, job_id: int) -> None:

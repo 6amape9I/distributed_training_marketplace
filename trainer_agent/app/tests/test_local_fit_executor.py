@@ -42,3 +42,13 @@ def test_local_fit_executor_produces_real_result_and_report() -> None:
     assert any(abs(weight) > 0 for weight in model_out["weights"])
     assert 0 <= report_out["accuracy"] <= 1
     assert report_out["sample_count"] == 4
+
+
+def test_local_fit_executor_prefers_manifest_feature_scales() -> None:
+    executor = LocalFitExecutor()
+    scales = executor._resolve_feature_scales(  # type: ignore[attr-defined]
+        {"feature_scales": [10.0, 20.0, 30.0]},
+        [{"features": [1.0, 2.0, 3.0], "label": 1}],
+        3,
+    )
+    assert scales == [10.0, 20.0, 30.0]

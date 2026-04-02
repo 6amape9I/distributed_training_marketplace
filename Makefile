@@ -2,7 +2,7 @@ VENV ?= .venv/bin
 PYTHON ?= $(VENV)/python
 PYTEST ?= $(VENV)/pytest
 
-.PHONY: check-env bootstrap-dev contracts-build contracts-test contracts-fmt python-test db-migrate orchestrator-run demo-up demo-init demo-start-flow demo-status demo-logs demo-down demo-clean demo-smoke public-check-env public-deploy public-create-job public-fund-job public-sync-job public-start-flow public-submit-attestation public-finalize-job public-withdraw public-status
+.PHONY: check-env bootstrap-dev contracts-build contracts-test contracts-fmt python-test db-migrate orchestrator-run demo-up demo-init demo-start-flow demo-status demo-logs demo-down demo-clean demo-smoke public-check-env public-deploy public-create-job public-fund-job public-sync-job public-start-flow public-submit-attestation public-finalize-job public-withdraw public-status experiment-prepare-data experiment-run-distributed experiment-run-baseline experiment-report
 
 check-env:
 	bash infra/scripts/check-env.sh
@@ -81,3 +81,15 @@ public-withdraw:
 
 public-status:
 	bash infra/scripts/public-status.sh
+
+experiment-prepare-data:
+	bash infra/scripts/experiment-prepare-data.sh
+
+experiment-run-distributed:
+	bash infra/scripts/experiment-run-distributed.sh
+
+experiment-run-baseline:
+	bash infra/scripts/experiment-run-baseline.sh
+
+experiment-report:
+	bash infra/scripts/experiment-report.sh

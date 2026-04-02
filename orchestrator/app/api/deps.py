@@ -6,6 +6,7 @@ from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
 from orchestrator.app.application.protocol_runtime.fedavg_like_v1 import FedAvgLikeV1Protocol
+from orchestrator.app.application.protocol_runtime.fedavg_like_wdbc_v1 import FedAvgLikeWdbcV1Protocol
 from orchestrator.app.application.protocol_runtime.registry import ProtocolRegistry
 from orchestrator.app.application.services.fedavg_like_aggregation_service import FedAvgLikeAggregationService
 from orchestrator.app.application.services.protocol_run_service import ProtocolRunService
@@ -181,10 +182,28 @@ def get_fedavg_like_protocol(
     )
 
 
+def get_fedavg_like_wdbc_protocol(
+    session: Session = Depends(get_db_session),
+    container: AppContainer = Depends(get_container),
+    artifact_service: ArtifactService = Depends(get_artifact_service),
+    aggregation_service: FedAvgLikeAggregationService = Depends(get_fedavg_like_aggregation_service),
+) -> FedAvgLikeWdbcV1Protocol:
+    return FedAvgLikeWdbcV1Protocol(
+        jobs=container.job_repository(session),
+        nodes=container.node_repository(session),
+        rounds=container.round_repository(session),
+        training_tasks=container.training_task_repository(session),
+        evaluation_tasks=container.evaluation_task_repository(session),
+        artifacts=artifact_service,
+        aggregation=aggregation_service,
+    )
+
+
 def get_protocol_registry(
     protocol: FedAvgLikeV1Protocol = Depends(get_fedavg_like_protocol),
+    wdbc_protocol: FedAvgLikeWdbcV1Protocol = Depends(get_fedavg_like_wdbc_protocol),
 ) -> ProtocolRegistry:
-    return ProtocolRegistry([protocol])
+    return ProtocolRegistry([protocol, wdbc_protocol])
 
 
 def get_protocol_run_service(

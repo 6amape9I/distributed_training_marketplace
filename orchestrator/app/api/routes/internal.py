@@ -98,10 +98,11 @@ def seed_evaluation_tasks_for_job(
 def start_protocol_run_for_job(
     job_id: int,
     service: Annotated[ProtocolRunService, Depends(get_protocol_run_service)],
+    protocol_name: str | None = None,
     session: Annotated[Session | None, Depends(get_db_session)] = None,
 ) -> ProtocolRunResponse:
     try:
-        result = service.start_for_job(job_id)
+        result = service.start_for_job(job_id, protocol_name=protocol_name)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     if session is not None:
@@ -109,6 +110,7 @@ def start_protocol_run_for_job(
     return ProtocolRunResponse(
         job_id=job_id,
         round_id=result.round_record.round_id,
+        protocol_name=result.round_record.protocol_name,
         task_ids=[task.task_id for task in result.training_tasks],
         artifact_ids=result.artifact_ids,
     )

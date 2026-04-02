@@ -33,7 +33,7 @@ class EvaluationExecutor:
 
         weights = [float(value) for value in model.get("weights", [0.0] * feature_count)]
         bias = float(model.get("bias", 0.0))
-        scales = self._feature_scales(samples, feature_count)
+        scales = self._resolve_feature_scales(manifest, samples, feature_count)
         losses: list[float] = []
         correct = 0
 
@@ -77,6 +77,17 @@ class EvaluationExecutor:
             acceptance_decision=acceptance_decision,
             target_model_digest=target_model_digest,
         )
+
+    def _resolve_feature_scales(
+        self,
+        manifest: dict[str, object],
+        samples: list[dict[str, object]],
+        feature_count: int,
+    ) -> list[float]:
+        raw_scales = manifest.get("feature_scales")
+        if isinstance(raw_scales, list) and len(raw_scales) == feature_count:
+            return [max(abs(float(value)), 1.0) for value in raw_scales]
+        return self._feature_scales(samples, feature_count)
 
     def _feature_scales(self, samples: list[dict[str, object]], feature_count: int) -> list[float]:
         scales = [1.0] * feature_count

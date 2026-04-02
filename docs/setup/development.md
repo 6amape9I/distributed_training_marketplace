@@ -112,6 +112,30 @@ Public runtime assumptions:
 - chain state is external on Base Sepolia;
 - on-chain writes stay explicit in helper scripts, not hidden inside runtime side effects.
 
+## Real dataset experiment workflow
+The repository now includes one experiment-only path for the real WDBC dataset:
+
+```bash
+make experiment-prepare-data
+make experiment-run-distributed
+make experiment-run-baseline
+make experiment-report
+```
+
+Use a fresh Stage 6 stand before `make experiment-run-distributed`:
+
+```bash
+make demo-clean
+make demo-up
+make demo-init
+```
+
+This experiment path:
+- keeps `fedavg_like_v1` unchanged for the canonical Stage 6 demo;
+- uses `fedavg_like_wdbc_v1` only for the WDBC experiment;
+- writes processed manifests under `data/processed/wdbc/`;
+- writes summaries and plots under `artifacts/experiments/real-training/`.
+
 ## Notes
 - Stage 5 adds explicit `round` persistence and a plugin-driven execution path via `fedavg_like_v1`.
 - The canonical off-chain flow is now `protocol run -> trainer tasks -> aggregation -> evaluation -> lifecycle reconcile`.
@@ -121,6 +145,7 @@ Public runtime assumptions:
 - Stage 7 adds the canonical Base Sepolia helper surface under `infra/scripts/public-*.sh`.
 - `make public-deploy` and follow-up commands write public runtime state to `tmp/public-state/current-run.env`.
 - `make public-status` combines orchestrator API state, direct on-chain job reads, tx hashes, and balance checks.
+- The WDBC experiment runbook lives in `docs/setup/real-training-experiment.md`.
 - Job lifecycle now extends through `evaluating`, `ready_for_attestation`, and `evaluation_failed`.
 - Contract ABI remains unchanged in Stage 7; public integration wraps the existing job/attestation/finalization/withdraw flow.
 - The canonical Codex/project guidance lives in `docs/codex/`.

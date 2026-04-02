@@ -23,6 +23,7 @@ class RoundResponse(BaseModel):
 class ProtocolRunResponse(BaseModel):
     job_id: int
     round_id: str
+    protocol_name: str
     task_ids: list[str]
     artifact_ids: list[str]
 

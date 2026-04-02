@@ -90,6 +90,29 @@ Defaults:
 - attestation/finalization are only run for the success path where the off-chain result reaches `ready_for_attestation`
 - runtime state is stored under `tmp/public-state/`
 
+## Real dataset experiment
+An extra reproducible experiment path now exists for the real WDBC dataset at `data/external/wdbc/wdbc.csv`.
+
+This path is separate from the canonical Stage 6 demo and the Stage 7 public runbook. It reuses the current off-chain runtime with:
+- deterministic WDBC preprocessing and trainer partitions;
+- a second protocol plugin, `fedavg_like_wdbc_v1`;
+- a fair single-process baseline using the same model family and split;
+- JSON summaries and comparison plots under `artifacts/experiments/real-training/`.
+
+Canonical command sequence:
+
+```bash
+make demo-clean
+make demo-up
+make demo-init
+make experiment-prepare-data
+make experiment-run-distributed
+make experiment-run-baseline
+make experiment-report
+```
+
+See `docs/setup/real-training-experiment.md`.
+
 ## Low-level local runs
 The manual single-process commands below remain available for debugging, but they are no longer the canonical demo path.
 
