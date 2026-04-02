@@ -41,13 +41,27 @@ require_demo_prereqs() {
 }
 
 
-compose_cmd() {
-  docker compose -f "$COMPOSE_FILE" "$@"
+require_host_port_free() {
+  local port=$1
+  python3 - "$port" <<'PY' || die "required host port $port is already in use"
+import socket
+import sys
+
+port = int(sys.argv[1])
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+try:
+    sock.bind(("0.0.0.0", port))
+except OSError:
+    raise SystemExit(1)
+finally:
+    sock.close()
+PY
 }
 
 
-compose_run_tool() {
-  compose_cmd run --rm --no-deps --user "$(id -u):$(id -g)" "$@"
+compose_cmd() {
+  docker compose -f "$COMPOSE_FILE" "$@"
 }
 
 

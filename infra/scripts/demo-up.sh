@@ -6,18 +6,22 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$SCRIPT_DIR/demo-common.sh"
 
 require_demo_prereqs
+require_host_port_free 8000
+require_host_port_free 8010
+require_host_port_free 8011
+require_host_port_free 8020
 
 log "starting base services"
-compose_cmd up -d --build anvil postgres
+compose_cmd up -d --build anvil postgres orchestrator
 wait_for_service_health anvil
 wait_for_service_health postgres
+wait_for_service_health orchestrator
 
 log "running orchestrator database migrations"
-compose_run_tool db-migrate
+compose_cmd exec -T orchestrator python -m alembic -c orchestrator/alembic.ini upgrade head
 
-log "starting orchestrator and workers"
-compose_cmd up -d --build orchestrator trainer-1 trainer-2 evaluator-1
-wait_for_service_health orchestrator
+log "starting workers"
+compose_cmd up -d --build trainer-1 trainer-2 evaluator-1
 wait_for_service_health trainer-1
 wait_for_service_health trainer-2
 wait_for_service_health evaluator-1
